@@ -1,6 +1,6 @@
 import { Client } from 'pg';
 
-const connectionString = 'postgresql://postgres:162004Kimokimo0100@db.cjtvxdcxpswtbywehrzu.supabase.co:5432/postgres';
+const connectionString = 'postgresql://postgres.cjtvxdcxpswtbywehrzu:162004Kimokimo0100@aws-0-eu-central-1.pooler.supabase.com:6543/postgres';
 
 const sql = `
 -- Enable UUID extension if not present
