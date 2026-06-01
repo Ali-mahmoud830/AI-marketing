@@ -5,24 +5,48 @@ import {
   Activity, Eye, Palette, Users, 
   TrendingUp, Play, Pause, Zap, 
   Search, Filter, Plus, Save, 
-  ChevronRight, ArrowRight
+  ChevronRight, ArrowRight, Settings, ShieldCheck
 } from 'lucide-react';
 
+// Pure RBAC Functions (duplicated for client-side use)
+function checkAccessSettings(role: string) { return role === 'SuperAdmin'; }
+function checkAccessMarketing(role: string) { return role === 'SuperAdmin'; }
+function checkAccessPipeline(role: string) { return role === 'SuperAdmin' || role === 'Sales' || role === 'CRM'; }
+
 export default function DashboardPage() {
+  const [role, setRole] = useState<string>('SuperAdmin');
   const [activeTab, setActiveTab] = useState('autopilot');
 
   const tabs = [
-    { id: 'autopilot', label: 'Ads Control Tower', icon: Activity },
-    { id: 'spy', label: 'Competitor Spy', icon: Eye },
-    { id: 'creative', label: 'AI Creative Studio', icon: Palette },
-    { id: 'crm', label: 'CRM Lead Pipeline', icon: Users },
+    { id: 'autopilot', label: 'Ads Control Tower', icon: Activity, access: checkAccessMarketing },
+    { id: 'spy', label: 'Competitor Spy', icon: Eye, access: checkAccessMarketing },
+    { id: 'creative', label: 'AI Creative Studio', icon: Palette, access: checkAccessMarketing },
+    { id: 'review', label: 'Creative Review', icon: ShieldCheck, access: checkAccessMarketing },
+    { id: 'crm', label: 'CRM Lead Pipeline', icon: Users, access: checkAccessPipeline },
+    { id: 'settings', label: 'Global Settings', icon: Settings, access: checkAccessSettings },
   ];
 
   return (
     <div className="space-y-6">
+      {/* Role Toggle for Testing */}
+      <div className="flex justify-end mb-4">
+        <select 
+          value={role} 
+          onChange={(e) => {
+            setRole(e.target.value);
+            if (e.target.value !== 'SuperAdmin') setActiveTab('crm');
+          }} 
+          className="bg-[#1C2C4A] text-[#D4AF37] border border-[#D4AF37]/50 rounded px-3 py-1 text-sm font-bold shadow-sm"
+        >
+          <option value="SuperAdmin">View As: SuperAdmin</option>
+          <option value="Sales">View As: Sales Team</option>
+          <option value="CRM">View As: CRM Team</option>
+        </select>
+      </div>
+
       {/* Tab Navigation */}
-      <div className="flex space-x-1 border-b border-[#1C2C4A] pb-px">
-        {tabs.map((tab) => {
+      <div className="flex space-x-1 border-b border-[#1C2C4A] pb-px overflow-x-auto">
+        {tabs.filter(t => t.access(role)).map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
@@ -44,10 +68,12 @@ export default function DashboardPage() {
 
       {/* Tab Content */}
       <div className="mt-6">
-        {activeTab === 'autopilot' && <AutopilotTab />}
-        {activeTab === 'spy' && <CompetitorSpyTab />}
-        {activeTab === 'creative' && <CreativeStudioTab />}
-        {activeTab === 'crm' && <CrmPipelineTab />}
+        {activeTab === 'autopilot' && checkAccessMarketing(role) && <AutopilotTab />}
+        {activeTab === 'spy' && checkAccessMarketing(role) && <CompetitorSpyTab />}
+        {activeTab === 'creative' && checkAccessMarketing(role) && <CreativeStudioTab />}
+        {activeTab === 'review' && checkAccessMarketing(role) && <CreativeReviewTab />}
+        {activeTab === 'crm' && checkAccessPipeline(role) && <CrmPipelineTab />}
+        {activeTab === 'settings' && checkAccessSettings(role) && <GlobalSettingsTab />}
       </div>
     </div>
   );
@@ -343,6 +369,77 @@ function CrmPipelineTab() {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function GlobalSettingsTab() {
+  const [saving, setSaving] = useState(false);
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-300">
+      <div>
+        <h3 className="text-xl font-medium text-white">Global Settings Module</h3>
+        <p className="text-sm text-slate-400">Manage API integrations and financial expectations securely.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-[#0B1E3B] p-6 rounded-xl border border-[#1C2C4A]">
+          <h4 className="text-lg font-medium text-white mb-4 border-b border-[#1C2C4A] pb-2">Financial Control Center</h4>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">VIP Segment Target CPL (EGP)</label>
+              <input type="number" defaultValue={150} className="w-full bg-[#152441] border border-[#1C2C4A] text-[#D4AF37] font-bold rounded-lg px-4 py-2 focus:outline-none focus:border-[#D4AF37]" />
+            </div>
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Standard Segment Target CPL (EGP)</label>
+              <input type="number" defaultValue={50} className="w-full bg-[#152441] border border-[#1C2C4A] text-[#D4AF37] font-bold rounded-lg px-4 py-2 focus:outline-none focus:border-[#D4AF37]" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-[#0B1E3B] p-6 rounded-xl border border-[#1C2C4A]">
+          <h4 className="text-lg font-medium text-white mb-4 border-b border-[#1C2C4A] pb-2">API Keys & Webhooks Manager</h4>
+          <div className="space-y-3">
+            {[
+              { label: 'Meta API Key', id: 'meta' },
+              { label: 'Midjourney Config', id: 'mj' },
+              { label: 'Luma Dream Machine', id: 'luma' },
+              { label: 'ElevenLabs Voice', id: 'eleven' },
+              { label: 'Gemini/OpenAI Key', id: 'llm' },
+            ].map(key => (
+              <div key={key.id}>
+                <label className="block text-xs text-slate-400 mb-1">{key.label}</label>
+                <input type="password" placeholder="••••••••••••••••" className="w-full bg-[#152441] border border-[#1C2C4A] text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#D4AF37]" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex justify-end">
+        <button 
+          onClick={() => { setSaving(true); setTimeout(() => setSaving(false), 1000); }}
+          className="flex items-center gap-2 px-6 py-3 bg-[#D4AF37] text-[#0A192F] font-bold rounded-lg hover:bg-amber-400 transition-colors shadow-[0_0_15px_rgba(212,175,55,0.2)]"
+        >
+          {saving ? 'Saving Config...' : <><Save size={18} /> Update Global Architecture</>}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CreativeReviewTab() {
+  return (
+    <div className="space-y-6 animate-in fade-in duration-300">
+      <div>
+        <h3 className="text-xl font-medium text-white">Creative Review (Human-in-the-Loop)</h3>
+        <p className="text-sm text-slate-400">Review AI-generated medical assets to prevent policy violations.</p>
+      </div>
+      <div className="bg-[#0B1E3B] p-6 rounded-xl border border-[#1C2C4A] text-center text-slate-400 py-12">
+        <ShieldCheck size={48} className="mx-auto mb-4 text-[#D4AF37] opacity-50" />
+        <p>No creatives are currently pending approval.</p>
       </div>
     </div>
   );
