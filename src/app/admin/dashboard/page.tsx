@@ -5,7 +5,7 @@ import {
   Activity, Eye, Palette, Users, 
   TrendingUp, Play, Pause, Zap, 
   Search, Filter, Plus, Save, 
-  ChevronRight, ArrowRight, Settings, ShieldCheck
+  ChevronRight, ArrowRight, Settings, ShieldCheck, Loader2
 } from 'lucide-react';
 
 // Pure RBAC Functions (duplicated for client-side use)
@@ -138,11 +138,35 @@ function AutopilotTab() {
 }
 
 function CompetitorSpyTab() {
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [competitorData, setCompetitorData] = useState('');
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+
   const competitors = [
     { name: 'Elite Care Services', keywords: ['home nursing', 'elderly care'], ads: 12, pricing: '$60/hr' },
     { name: 'NannyPro Egypt', keywords: ['nanny cairo', 'childcare'], ads: 8, pricing: '$45/hr' },
     { name: 'CleanSweep Maadi', keywords: ['housekeeping', 'deep clean'], ads: 24, pricing: '$25/hr' },
   ];
+
+  const handleAnalyze = async () => {
+    setIsAnalyzing(true);
+    try {
+      const res = await fetch('/api/llm/analyze-market', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ competitorData })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAnalysisResult(data.data);
+      } else {
+        console.error('Analysis failed:', data.error);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    setIsAnalyzing(false);
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -151,14 +175,54 @@ function CompetitorSpyTab() {
           <h3 className="text-xl font-medium text-white">Competitor Intelligence Hub</h3>
           <p className="text-sm text-slate-400">Track active ad scripts, keywords, and pricing matrices</p>
         </div>
-        <div className="flex gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input type="text" placeholder="Search competitors..." className="bg-[#0B1E3B] border border-[#1C2C4A] text-slate-200 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-[#D4AF37]" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className="bg-[#0B1E3B] p-6 rounded-xl border border-[#1C2C4A]">
+          <h4 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+            <Search size={18} className="text-[#D4AF37]" /> Market Sentiment Analyzer (LLM)
+          </h4>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Raw Competitor Data (Paste scraped ads/pricing)</label>
+              <textarea 
+                rows={4}
+                value={competitorData} 
+                onChange={(e) => setCompetitorData(e.target.value)} 
+                placeholder="Paste data here to extract weaknesses and angles..." 
+                className="w-full bg-[#152441] border border-[#1C2C4A] text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#D4AF37]" 
+              />
+            </div>
+            <button 
+              onClick={handleAnalyze}
+              disabled={isAnalyzing || !competitorData}
+              className="w-full py-3 bg-gradient-to-r from-[#D4AF37] to-amber-500 text-[#0A192F] font-bold rounded-lg mt-2 hover:opacity-90 disabled:opacity-50 transition-opacity flex justify-center items-center gap-2"
+            >
+              {isAnalyzing ? (
+                <>Analyzing Market <Loader2 className="animate-spin" size={18} /></>
+              ) : (
+                <>Extract Strategic Angles <Zap size={18} /></>
+              )}
+            </button>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-[#1C2C4A] hover:bg-[#2A3F63] text-white rounded-lg text-sm transition-colors border border-[#1C2C4A]">
-            <Filter size={16} /> Filter
-          </button>
+        </div>
+
+        <div className="bg-[#0B1E3B] p-6 rounded-xl border border-[#1C2C4A] flex flex-col">
+          <h4 className="text-lg font-medium text-white mb-4 flex items-center justify-between">
+            <span>LLM Analysis Output</span>
+            <span className="text-xs bg-[#1C2C4A] text-emerald-400 px-2 py-1 rounded border border-emerald-400/30">Schema Verified</span>
+          </h4>
+          <div className="flex-1 border-2 border-dashed border-[#1C2C4A] rounded-lg p-4 bg-[#152441]/50 overflow-auto text-xs font-mono text-emerald-300">
+            {isAnalyzing ? (
+              <div className="flex items-center justify-center h-full text-[#D4AF37]">
+                <Loader2 className="animate-spin mr-2" /> Processing Intelligence...
+              </div>
+            ) : analysisResult ? (
+              <pre className="whitespace-pre-wrap">{JSON.stringify(analysisResult, null, 2)}</pre>
+            ) : (
+              <span className="text-slate-500 flex items-center justify-center h-full">Waiting for analysis...</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -210,16 +274,39 @@ function CompetitorSpyTab() {
 
 function CreativeStudioTab() {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [serviceType, setServiceType] = useState('');
+  const [targetAudience, setTargetAudience] = useState('');
+  const [specialOffer, setSpecialOffer] = useState('');
+  const [result, setResult] = useState<any>(null);
+
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    try {
+      const res = await fetch('/api/llm/generate-scripts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ serviceType, targetAudience, specialOffer })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setResult(data.data);
+      } else {
+        console.error('Generation failed:', data.error);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    setIsGenerating(false);
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       <div>
-        <h3 className="text-xl font-medium text-white">AI Creative Studio</h3>
-        <p className="text-sm text-slate-400">Generate ad copy, images, and voiceovers instantly</p>
+        <h3 className="text-xl font-medium text-white">Adaptive Scriptwriter (LLM Brain)</h3>
+        <p className="text-sm text-slate-400">Generate strictly compliant medical ad copy and Midjourney prompts.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Input Form */}
         <div className="bg-[#0B1E3B] p-6 rounded-xl border border-[#1C2C4A]">
           <h4 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
             <Palette size={18} className="text-[#D4AF37]" /> Asset Configuration
@@ -227,72 +314,47 @@ function CreativeStudioTab() {
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Headline Prompt</label>
-              <input type="text" placeholder="e.g. Premium nursing care at home..." className="w-full bg-[#152441] border border-[#1C2C4A] text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#D4AF37]" />
+              <label className="block text-sm text-slate-400 mb-1">Service Type</label>
+              <input value={serviceType} onChange={(e) => setServiceType(e.target.value)} type="text" placeholder="e.g. Premium Home Nursing" className="w-full bg-[#152441] border border-[#1C2C4A] text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#D4AF37]" />
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Image Style / Visuals</label>
-              <textarea rows={3} placeholder="e.g. Cinematic lighting, professional nurse smiling, warm colors..." className="w-full bg-[#152441] border border-[#1C2C4A] text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#D4AF37]" />
+              <label className="block text-sm text-slate-400 mb-1">Target Audience</label>
+              <input value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} type="text" placeholder="e.g. High-income families with elderly parents" className="w-full bg-[#152441] border border-[#1C2C4A] text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#D4AF37]" />
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Voiceover Script (Optional)</label>
-              <textarea rows={2} placeholder="Enter script for ElevenLabs generation..." className="w-full bg-[#152441] border border-[#1C2C4A] text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#D4AF37]" />
+              <label className="block text-sm text-slate-400 mb-1">Special Offer</label>
+              <input value={specialOffer} onChange={(e) => setSpecialOffer(e.target.value)} type="text" placeholder="e.g. Free initial consultation" className="w-full bg-[#152441] border border-[#1C2C4A] text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#D4AF37]" />
             </div>
             
             <button 
-              onClick={() => {
-                setIsGenerating(true);
-                setTimeout(() => setIsGenerating(false), 2000);
-              }}
-              className="w-full py-3 bg-gradient-to-r from-[#D4AF37] to-amber-500 text-[#0A192F] font-bold rounded-lg mt-4 hover:opacity-90 transition-opacity flex justify-center items-center gap-2"
+              onClick={handleGenerate}
+              disabled={isGenerating || !serviceType || !targetAudience || !specialOffer}
+              className="w-full py-3 bg-gradient-to-r from-[#D4AF37] to-amber-500 text-[#0A192F] font-bold rounded-lg mt-4 hover:opacity-90 disabled:opacity-50 transition-opacity flex justify-center items-center gap-2"
             >
               {isGenerating ? (
-                <>Generating Assets <span className="animate-spin text-xl leading-none">⟳</span></>
+                <>Generating Scripts <Loader2 className="animate-spin" size={18} /></>
               ) : (
-                <>Generate AI Creative <Zap size={18} /></>
+                <>Generate Compliant Copy <Zap size={18} /></>
               )}
             </button>
           </div>
         </div>
 
-        {/* Preview Area */}
         <div className="bg-[#0B1E3B] p-6 rounded-xl border border-[#1C2C4A] flex flex-col">
           <h4 className="text-lg font-medium text-white mb-4 flex items-center justify-between">
-            <span>Mock-up Preview</span>
-            <span className="text-xs bg-[#1C2C4A] text-[#D4AF37] px-2 py-1 rounded border border-[#D4AF37]/30">Meta Ads Format</span>
+            <span>LLM Generated JSON</span>
+            <span className="text-xs bg-[#1C2C4A] text-emerald-400 px-2 py-1 rounded border border-emerald-400/30">Schema Verified</span>
           </h4>
           
-          <div className="flex-1 border-2 border-dashed border-[#1C2C4A] rounded-lg flex flex-col items-center justify-center p-8 bg-[#152441]/50 relative overflow-hidden group">
+          <div className="flex-1 border-2 border-dashed border-[#1C2C4A] rounded-lg p-4 bg-[#152441]/50 overflow-auto text-xs font-mono text-emerald-300">
             {isGenerating ? (
-              <div className="text-center animate-pulse">
-                <div className="w-16 h-16 rounded-full border-4 border-t-[#D4AF37] border-r-transparent border-b-[#D4AF37] border-l-transparent animate-spin mx-auto mb-4"></div>
-                <p className="text-[#D4AF37] font-medium">Assembling Magic...</p>
+              <div className="flex items-center justify-center h-full text-[#D4AF37]">
+                <Loader2 className="animate-spin mr-2" /> Orchestrating LLM...
               </div>
+            ) : result ? (
+              <pre className="whitespace-pre-wrap">{JSON.stringify(result, null, 2)}</pre>
             ) : (
-              <div className="w-full max-w-sm bg-white rounded shadow text-slate-900 overflow-hidden transform transition-transform group-hover:scale-105">
-                <div className="p-3 flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-slate-300"></div>
-                  <div>
-                    <p className="text-xs font-bold leading-tight">Nexus AI Marketing</p>
-                    <p className="text-[10px] text-slate-500">Sponsored • 🌍</p>
-                  </div>
-                </div>
-                <div className="px-3 pb-2 text-xs">
-                  Experience the pinnacle of home healthcare. Professional, compassionate, and reliable.
-                </div>
-                <div className="w-full h-48 bg-slate-200 flex items-center justify-center text-slate-400">
-                  <Palette size={48} opacity={0.2} />
-                </div>
-                <div className="p-3 bg-slate-100 flex justify-between items-center">
-                  <div>
-                    <p className="text-[10px] text-slate-500 uppercase">NEXUSCARE.COM</p>
-                    <p className="font-bold text-sm">Premium Nursing Care Today</p>
-                  </div>
-                  <button className="bg-slate-200 hover:bg-slate-300 px-3 py-1 rounded text-xs font-bold transition-colors">
-                    Learn more
-                  </button>
-                </div>
-              </div>
+              <span className="text-slate-500 flex items-center justify-center h-full">Waiting for generation...</span>
             )}
           </div>
         </div>
