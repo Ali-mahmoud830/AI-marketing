@@ -8,65 +8,73 @@ const WebhookEventSchema = z.object({
   event_time: z.number(),
   value: z.number().optional(),
   currency: z.string().optional(),
-  spend: z.number().optional(), // Injected metric for calculation
-  leads_count: z.number().optional() // Injected metric for calculation
+  spend: z.number().optional(),
+  leads_count: z.number().optional()
 });
+
+const TARGET_CPL = 150; // In reality, this would be fetched from global_settings
+const LEARNING_PHASE_MS = 72 * 60 * 60 * 1000;
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const validatedData = WebhookEventSchema.parse(body);
-
     const { campaignId, spend, leads_count, value } = validatedData;
 
-    // Autopilot logic: calculate ROAS and Cost-Per-Lead (CPL)
-    const currentSpend = spend || 1; 
-    const currentLeads = leads_count || 1;
-    const revenue = value || 0;
-
-    const cpl = currentSpend / currentLeads;
-    const roas = revenue / currentSpend;
-
-    let budgetMultiplier = 1.0;
-
-    // Simple Autopilot Rules
-    if (roas > 3.0 || cpl < 15) {
-      // Performing well, scale up 20%
-      budgetMultiplier = 1.2;
-    } else if (roas < 1.0 || cpl > 50) {
-      // Underperforming, scale down 20%
-      budgetMultiplier = 0.8;
+    // Fetch Campaign to check created_at
+    const fetchQuery = `SELECT * FROM marketing_campaigns WHERE id = $1`;
+    const campaignResult = await query(fetchQuery, [campaignId]);
+    
+    if (campaignResult.rowCount === 0) {
+      return NextResponse.json({ success: false, error: 'Campaign not found' }, { status: 404 });
     }
+    const campaign = campaignResult.rows[0];
 
-    if (budgetMultiplier !== 1.0) {
-      // Update local database budget
-      const updateQuery = `
-        UPDATE marketing_campaigns
-        SET daily_budget = daily_budget * $1
-        WHERE id = $2
-        RETURNING *;
-      `;
-      
-      const dbResult = await query(updateQuery, [budgetMultiplier, campaignId]);
-      const updatedCampaign = dbResult.rows[0];
-
-      // MOCK: Update budget via Meta API
-      // await fetch(`https://graph.facebook.com/v19.0/${updatedCampaign.api_campaign_id}`, {
-      //   method: 'POST',
-      //   body: JSON.stringify({ daily_budget: updatedCampaign.daily_budget * 100 }), // Meta expects cents
-      // });
-
+    // 1. 72-hour Learning Phase Lock
+    const campaignAgeMs = Date.now() - new Date(campaign.created_at).getTime();
+    if (campaignAgeMs < LEARNING_PHASE_MS) {
       return NextResponse.json({ 
         success: true, 
-        action: 'budget_adjusted',
-        new_budget: updatedCampaign.daily_budget
+        action: 'learning_phase',
+        message: 'Campaign is in 72-hour learning phase. No actions taken.'
       });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      action: 'budget_maintained'
-    });
+    const currentSpend = spend || 1; 
+    const currentLeads = leads_count || 1;
+    const cpl = currentSpend / currentLeads;
+
+    let budgetMultiplier = 1.0;
+    let newStatus = campaign.status;
+
+    // 2. Dynamic Budget Scaling (Anti-Ban Protection)
+    if (cpl < TARGET_CPL) {
+      budgetMultiplier = 1.2; // Scale UP 20%
+    } else if (cpl > TARGET_CPL) {
+      budgetMultiplier = 0.5; // Scale DOWN 50%, do not kill
+      newStatus = 'Warning';
+    }
+
+    if (budgetMultiplier !== 1.0 || newStatus !== campaign.status) {
+      const updateQuery = `
+        UPDATE marketing_campaigns
+        SET daily_budget = daily_budget * $1, status = $2
+        WHERE id = $3
+        RETURNING *;
+      `;
+      
+      const dbResult = await query(updateQuery, [budgetMultiplier, newStatus, campaignId]);
+      const updatedCampaign = dbResult.rows[0];
+
+      return NextResponse.json({ 
+        success: true, 
+        action: cpl > TARGET_CPL ? 'scale_down_warning' : 'scale_up',
+        new_budget: updatedCampaign.daily_budget,
+        status: newStatus
+      });
+    }
+
+    return NextResponse.json({ success: true, action: 'budget_maintained' });
 
   } catch (error: any) {
     if (error instanceof z.ZodError) {

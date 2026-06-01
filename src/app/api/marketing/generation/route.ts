@@ -26,16 +26,16 @@ export async function POST(request: Request) {
 
     // 1. Compliance Check
     const fullText = `${validatedData.headlinePrompt} ${validatedData.primaryTextPrompt} ${validatedData.voiceoverScript || ''}`;
-    let complianceStatus = 'approved';
+    let isFlagged = false;
     
     for (const regex of COMPLIANCE_VIOLATION_REGEX) {
       if (regex.test(fullText)) {
-        complianceStatus = 'flagged';
+        isFlagged = true;
         break;
       }
     }
 
-    if (complianceStatus === 'flagged') {
+    if (isFlagged) {
       return NextResponse.json({ 
         success: false, 
         error: 'Content flagged for policy violations.' 
@@ -43,22 +43,19 @@ export async function POST(request: Request) {
     }
 
     // MOCK: Generate text variations (OpenAI)
-    // const gptResponse = await openai.createCompletion({...})
     const generatedHeadline = "Discover Premium Care Today";
     const generatedPrimaryText = "We provide the best services for your needs.";
 
     // MOCK: Generate image (Midjourney/Flux)
-    // const mjResponse = await fetch('https://api.midjourney.com/...', {...})
     const generatedImageUrl = "https://mock-image-cdn.com/creative-1.png";
 
     // MOCK: Generate voiceover (ElevenLabs)
-    // const elResponse = await fetch('https://api.elevenlabs.io/...', {...})
     const generatedVoiceoverUrl = validatedData.voiceoverScript ? "https://mock-audio-cdn.com/voice-1.mp3" : null;
 
-    // Save to database
+    // Save to database with 'pending_approval' status for Human-in-the-loop review
     const insertQuery = `
       INSERT INTO ad_creatives 
-      (ad_set_id, headline, primary_text, image_url, voiceover_url, compliance_status)
+      (ad_set_id, headline, primary_text, image_url, voiceover_url, status)
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *;
     `;
@@ -69,7 +66,7 @@ export async function POST(request: Request) {
       generatedPrimaryText,
       generatedImageUrl,
       generatedVoiceoverUrl,
-      complianceStatus
+      'pending_approval'
     ]);
 
     return NextResponse.json({ success: true, data: result.rows[0] });

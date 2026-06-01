@@ -8,6 +8,21 @@ const SpyRequestSchema = z.object({
   industryCategory: z.string(),
 });
 
+// User-Agent Spoofing Pool
+const USER_AGENTS = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.15',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0'
+];
+
+// Configuration for Rotating Residential Proxies
+const PROXY_CONFIG = {
+  enabled: process.env.ENABLE_RESIDENTIAL_PROXIES === 'true',
+  url: process.env.PROXY_URL || 'http://customer-scout:pass@pr.oxylabs.io:7777'
+};
+
+const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -21,9 +36,21 @@ export async function GET(request: Request) {
       industryCategory,
     });
 
-    // MOCK: Meta Ad Library API Fetch
-    // const metaResponse = await fetch(`https://graph.facebook.com/v19.0/ads_archive?search_terms=${validatedData.companyName}&access_token=${process.env.META_ACCESS_TOKEN}`);
-    // const metaData = await metaResponse.json();
+    // Stealth: Randomized Human-like Jitter Delay (2000ms - 7000ms)
+    const jitter = Math.floor(Math.random() * (7000 - 2000) + 2000);
+    await delay(jitter);
+
+    // Stealth: Pick random User-Agent
+    const randomUserAgent = USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+    
+    // MOCK: Meta Ad Library API Fetch using proxy config and headers
+    /*
+    const fetchOptions = {
+      headers: { 'User-Agent': randomUserAgent },
+      agent: PROXY_CONFIG.enabled ? new HttpsProxyAgent(PROXY_CONFIG.url) : undefined
+    };
+    const metaResponse = await fetch(`https://graph.facebook.com/v19.0/ads_archive...`, fetchOptions);
+    */
     
     const mockAdsPayload = [
       { id: 'ad_1', text: 'Limited time offer!', status: 'ACTIVE' },
@@ -37,7 +64,7 @@ export async function GET(request: Request) {
 
     const mockKeywords = ['home nursing', 'cleaning services', 'nanny'];
 
-    // Insert into Supabase via pg
+    // Insert into Supabase
     const insertQuery = `
       INSERT INTO competitor_spy 
       (company_name, domain_url, industry_category, active_ads_payload, pricing_intelligence, top_performing_keywords)
@@ -59,7 +86,7 @@ export async function GET(request: Request) {
       mockKeywords
     ]);
 
-    return NextResponse.json({ success: true, data: result.rows[0] });
+    return NextResponse.json({ success: true, jitter_applied_ms: jitter, data: result.rows[0] });
 
   } catch (error: any) {
     if (error instanceof z.ZodError) {
