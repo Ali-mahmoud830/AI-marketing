@@ -13,11 +13,11 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { serviceType, targetAudience, specialOffer } = GenerateScriptsRequestSchema.parse(body);
 
-    const prompt = \`You are an Elite Medical Copywriter and AI Prompter.
+    const prompt = `You are an Elite Medical Copywriter and AI Prompter.
 Generate marketing assets for the following OmniCare service:
-- Service: \${serviceType}
-- Target Audience: \${targetAudience}
-- Special Offer: \${specialOffer}
+- Service: ${serviceType}
+- Target Audience: ${targetAudience}
+- Special Offer: ${specialOffer}
 
 STRICT COMPLIANCE RULES (Meta Medical Policies):
 - Do NOT make "before/after" promises.
@@ -29,7 +29,7 @@ MIDJOURNEY PROMPT RULES:
 - You MUST append exactly: --ar 9:16 --v 6.0
 - Include explicit negative constraints to prevent distortion (e.g., "no distorted hands, no fake medical equipment, no unprofessional attire, anatomical correctness").
 
-Output strictly matching the required JSON schema.\`;
+Output strictly matching the required JSON schema.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',

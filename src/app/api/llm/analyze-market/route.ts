@@ -11,13 +11,13 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { competitorData } = AnalyzeMarketRequestSchema.parse(body);
 
-    const prompt = \`You are a Senior Market Analyst specializing in Medical SaaS and B2B Healthcare.
+    const prompt = `You are a Senior Market Analyst specializing in Medical SaaS and B2B Healthcare.
 Analyze the following competitor data (ads, pricing, keywords).
 Identify their weaknesses, gaps in their messaging, and recommend unique marketing angles for OmniCare to exploit.
 
 Competitor Data:
-\${competitorData}
-\`;
+${competitorData}
+`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',

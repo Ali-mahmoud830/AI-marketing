@@ -3,12 +3,20 @@
 import { useState } from 'react';
 import { 
   Activity, Eye, Palette, Users, 
-  TrendingUp, Play, Pause, Zap, 
+  TrendingUp, Play, Zap, 
   Search, Filter, Plus, Save, 
-  ChevronRight, ArrowRight, Settings, ShieldCheck, Loader2
+  ArrowRight, Settings, ShieldCheck, Loader2
 } from 'lucide-react';
 
-// Pure RBAC Functions (duplicated for client-side use)
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+
+// Pure RBAC Functions
 function checkAccessSettings(role: string) { return role === 'SuperAdmin'; }
 function checkAccessMarketing(role: string) { return role === 'SuperAdmin'; }
 function checkAccessPipeline(role: string) { return role === 'SuperAdmin' || role === 'Sales' || role === 'CRM'; }
@@ -28,7 +36,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Role Toggle for Testing */}
       <div className="flex justify-end mb-4">
         <select 
           value={role} 
@@ -36,7 +43,7 @@ export default function DashboardPage() {
             setRole(e.target.value);
             if (e.target.value !== 'SuperAdmin') setActiveTab('crm');
           }} 
-          className="bg-[#1C2C4A] text-[#D4AF37] border border-[#D4AF37]/50 rounded px-3 py-1 text-sm font-bold shadow-sm"
+          className="bg-card text-primary border border-border rounded px-3 py-1 text-sm font-bold shadow-sm"
         >
           <option value="SuperAdmin">View As: SuperAdmin</option>
           <option value="Sales">View As: Sales Team</option>
@@ -44,42 +51,31 @@ export default function DashboardPage() {
         </select>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex space-x-1 border-b border-[#1C2C4A] pb-px overflow-x-auto">
-        {tabs.filter(t => t.access(role)).map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-6 py-3 font-medium text-sm transition-all duration-200 border-b-2 ${
-                isActive 
-                  ? 'border-[#D4AF37] text-[#D4AF37] bg-[#1C2C4A]/50' 
-                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#152441]'
-              }`}
-            >
-              <Icon size={18} />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Tab Content */}
-      <div className="mt-6">
-        {activeTab === 'autopilot' && checkAccessMarketing(role) && <AutopilotTab />}
-        {activeTab === 'spy' && checkAccessMarketing(role) && <CompetitorSpyTab />}
-        {activeTab === 'creative' && checkAccessMarketing(role) && <CreativeStudioTab />}
-        {activeTab === 'review' && checkAccessMarketing(role) && <CreativeReviewTab />}
-        {activeTab === 'crm' && checkAccessPipeline(role) && <CrmPipelineTab />}
-        {activeTab === 'settings' && checkAccessSettings(role) && <GlobalSettingsTab />}
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="bg-muted border border-border h-auto p-1 flex-wrap justify-start">
+          {tabs.filter(t => t.access(role)).map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <TabsTrigger key={tab.id} value={tab.id} className="flex items-center gap-2 py-2 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">
+                <Icon size={16} />
+                {tab.label}
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+        
+        <div className="mt-6">
+          <TabsContent value="autopilot" className="mt-0"><AutopilotTab /></TabsContent>
+          <TabsContent value="spy" className="mt-0"><CompetitorSpyTab /></TabsContent>
+          <TabsContent value="creative" className="mt-0"><CreativeStudioTab /></TabsContent>
+          <TabsContent value="review" className="mt-0"><CreativeReviewTab /></TabsContent>
+          <TabsContent value="crm" className="mt-0"><CrmPipelineTab /></TabsContent>
+          <TabsContent value="settings" className="mt-0"><GlobalSettingsTab /></TabsContent>
+        </div>
+      </Tabs>
     </div>
   );
 }
-
-// --- TAB COMPONENTS ---
 
 function AutopilotTab() {
   const [autoPilotEnabled, setAutoPilotEnabled] = useState(true);
@@ -88,20 +84,20 @@ function AutopilotTab() {
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-xl font-medium text-white">Live Performance Metrics</h3>
-          <p className="text-sm text-slate-400">Real-time ROAS and CPL tracking</p>
+          <h3 className="text-xl font-medium text-foreground">Live Performance Metrics</h3>
+          <p className="text-sm text-muted-foreground">Real-time ROAS and CPL tracking</p>
         </div>
-        <div className="flex items-center gap-3 bg-[#152441] p-2 pr-4 rounded-full border border-[#1C2C4A]">
+        <div className="flex items-center gap-3 bg-muted p-2 pr-4 rounded-full border border-border">
           <button 
             onClick={() => setAutoPilotEnabled(!autoPilotEnabled)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${autoPilotEnabled ? 'bg-[#D4AF37]' : 'bg-slate-600'}`}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${autoPilotEnabled ? 'bg-primary' : 'bg-slate-600'}`}
           >
-            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${autoPilotEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${autoPilotEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
           </button>
-          <span className="text-sm font-medium text-slate-200">
+          <span className="text-sm font-medium text-foreground">
             {autoPilotEnabled ? 'AI Autopilot Active' : 'Manual Mode'}
           </span>
-          {autoPilotEnabled && <Zap size={16} className="text-[#D4AF37] animate-pulse" />}
+          {autoPilotEnabled && <Zap size={16} className="text-primary animate-pulse" />}
         </div>
       </div>
 
@@ -111,28 +107,29 @@ function AutopilotTab() {
           { label: 'Avg. CPL', value: '$14.20', trend: '-8%', up: true },
           { label: 'Overall ROAS', value: '3.4x', trend: '+22%', up: true }
         ].map((stat, i) => (
-          <div key={i} className="bg-[#0B1E3B] p-6 rounded-xl border border-[#1C2C4A] shadow-lg">
-            <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
-            <div className="flex items-end justify-between">
-              <h4 className="text-3xl font-bold text-white">{stat.value}</h4>
-              <span className={`text-sm font-medium flex items-center ${stat.up ? 'text-green-400' : 'text-red-400'}`}>
+          <Card key={i} className="border-border shadow-lg">
+            <CardHeader className="pb-2">
+              <CardDescription>{stat.label}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-end justify-between">
+              <h4 className="text-3xl font-bold text-foreground">{stat.value}</h4>
+              <span className={`text-sm font-medium flex items-center ${stat.up ? 'text-green-500' : 'text-red-500'}`}>
                 <TrendingUp size={14} className="mr-1" />
                 {stat.trend}
               </span>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      {/* Mock Chart Area */}
-      <div className="bg-[#0B1E3B] p-6 rounded-xl border border-[#1C2C4A] h-80 flex flex-col items-center justify-center relative overflow-hidden">
-        <p className="text-slate-500 mb-4 z-10 font-medium">Performance Chart Visualization Area</p>
-        <div className="absolute bottom-0 w-full h-32 bg-gradient-to-t from-[#D4AF37]/20 to-transparent"></div>
-        <svg className="absolute bottom-0 w-full h-full text-[#D4AF37]/30" preserveAspectRatio="none" viewBox="0 0 100 100">
+      <Card className="h-80 flex flex-col items-center justify-center relative overflow-hidden border-border">
+        <p className="text-muted-foreground mb-4 z-10 font-medium">Performance Chart Visualization Area</p>
+        <div className="absolute bottom-0 w-full h-32 bg-gradient-to-t from-primary/20 to-transparent"></div>
+        <svg className="absolute bottom-0 w-full h-full text-primary/30" preserveAspectRatio="none" viewBox="0 0 100 100">
           <path d="M0,100 L0,80 Q25,60 50,70 T100,30 L100,100 Z" fill="currentColor" opacity="0.5" />
-          <path d="M0,80 Q25,60 50,70 T100,30" fill="none" stroke="#D4AF37" strokeWidth="2" />
+          <path d="M0,80 Q25,60 50,70 T100,30" fill="none" stroke="hsl(var(--primary))" strokeWidth="2" />
         </svg>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -172,102 +169,102 @@ function CompetitorSpyTab() {
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-xl font-medium text-white">Competitor Intelligence Hub</h3>
-          <p className="text-sm text-slate-400">Track active ad scripts, keywords, and pricing matrices</p>
+          <h3 className="text-xl font-medium text-foreground">Competitor Intelligence Hub</h3>
+          <p className="text-sm text-muted-foreground">Track active ad scripts, keywords, and pricing matrices</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <div className="bg-[#0B1E3B] p-6 rounded-xl border border-[#1C2C4A]">
-          <h4 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
-            <Search size={18} className="text-[#D4AF37]" /> Market Sentiment Analyzer (LLM)
-          </h4>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-slate-400 mb-1">Raw Competitor Data (Paste scraped ads/pricing)</label>
-              <textarea 
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Search size={18} className="text-primary" /> Market Sentiment Analyzer (LLM)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Raw Competitor Data (Paste scraped ads/pricing)</Label>
+              <Textarea 
                 rows={4}
                 value={competitorData} 
                 onChange={(e) => setCompetitorData(e.target.value)} 
                 placeholder="Paste data here to extract weaknesses and angles..." 
-                className="w-full bg-[#152441] border border-[#1C2C4A] text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#D4AF37]" 
+                className="resize-none"
               />
             </div>
-            <button 
+            <Button 
               onClick={handleAnalyze}
               disabled={isAnalyzing || !competitorData}
-              className="w-full py-3 bg-gradient-to-r from-[#D4AF37] to-amber-500 text-[#0A192F] font-bold rounded-lg mt-2 hover:opacity-90 disabled:opacity-50 transition-opacity flex justify-center items-center gap-2"
+              className="w-full flex items-center gap-2"
             >
               {isAnalyzing ? (
                 <>Analyzing Market <Loader2 className="animate-spin" size={18} /></>
               ) : (
                 <>Extract Strategic Angles <Zap size={18} /></>
               )}
-            </button>
-          </div>
-        </div>
+            </Button>
+          </CardContent>
+        </Card>
 
-        <div className="bg-[#0B1E3B] p-6 rounded-xl border border-[#1C2C4A] flex flex-col">
-          <h4 className="text-lg font-medium text-white mb-4 flex items-center justify-between">
-            <span>LLM Analysis Output</span>
-            <span className="text-xs bg-[#1C2C4A] text-emerald-400 px-2 py-1 rounded border border-emerald-400/30">Schema Verified</span>
-          </h4>
-          <div className="flex-1 border-2 border-dashed border-[#1C2C4A] rounded-lg p-4 bg-[#152441]/50 overflow-auto text-xs font-mono text-emerald-300">
-            {isAnalyzing ? (
-              <div className="flex items-center justify-center h-full text-[#D4AF37]">
-                <Loader2 className="animate-spin mr-2" /> Processing Intelligence...
-              </div>
-            ) : analysisResult ? (
-              <pre className="whitespace-pre-wrap">{JSON.stringify(analysisResult, null, 2)}</pre>
-            ) : (
-              <span className="text-slate-500 flex items-center justify-center h-full">Waiting for analysis...</span>
-            )}
-          </div>
-        </div>
+        <Card className="flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg">LLM Analysis Output</CardTitle>
+            <span className="text-xs bg-card border border-emerald-500/30 text-emerald-500 px-2 py-1 rounded">Schema Verified</span>
+          </CardHeader>
+          <CardContent className="flex-1">
+            <div className="h-full min-h-[150px] border-2 border-dashed border-border rounded-lg p-4 bg-muted/50 overflow-auto text-xs font-mono text-emerald-400">
+              {isAnalyzing ? (
+                <div className="flex items-center justify-center h-full text-primary">
+                  <Loader2 className="animate-spin mr-2" /> Processing Intelligence...
+                </div>
+              ) : analysisResult ? (
+                <pre className="whitespace-pre-wrap">{JSON.stringify(analysisResult, null, 2)}</pre>
+              ) : (
+                <span className="text-muted-foreground flex items-center justify-center h-full">Waiting for analysis...</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="bg-[#0B1E3B] rounded-xl border border-[#1C2C4A] overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-[#152441] border-b border-[#1C2C4A]">
-              <th className="px-6 py-4 text-sm font-medium text-slate-300">Competitor</th>
-              <th className="px-6 py-4 text-sm font-medium text-slate-300">Top Keywords</th>
-              <th className="px-6 py-4 text-sm font-medium text-slate-300">Active Ads</th>
-              <th className="px-6 py-4 text-sm font-medium text-slate-300">Est. Pricing</th>
-              <th className="px-6 py-4 text-sm font-medium text-slate-300 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Competitor</TableHead>
+              <TableHead>Top Keywords</TableHead>
+              <TableHead>Active Ads</TableHead>
+              <TableHead>Est. Pricing</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {competitors.map((comp, i) => (
-              <tr key={i} className="border-b border-[#1C2C4A]/50 hover:bg-[#152441]/50 transition-colors">
-                <td className="px-6 py-4">
-                  <div className="font-medium text-white">{comp.name}</div>
-                </td>
-                <td className="px-6 py-4">
+              <TableRow key={i}>
+                <TableCell className="font-medium">{comp.name}</TableCell>
+                <TableCell>
                   <div className="flex gap-2">
                     {comp.keywords.map(kw => (
-                      <span key={kw} className="px-2 py-1 bg-[#1C2C4A] text-slate-300 text-xs rounded border border-[#2A3F63]">
+                      <span key={kw} className="px-2 py-1 bg-muted text-muted-foreground text-xs rounded border border-border">
                         {kw}
                       </span>
                     ))}
                   </div>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="flex items-center gap-1 text-[#D4AF37] font-medium">
+                </TableCell>
+                <TableCell>
+                  <span className="flex items-center gap-1 text-primary font-medium">
                     <Play size={14} fill="currentColor" /> {comp.ads} live
                   </span>
-                </td>
-                <td className="px-6 py-4 text-slate-300">{comp.pricing}</td>
-                <td className="px-6 py-4 text-right">
-                  <button className="text-sm text-[#D4AF37] hover:text-amber-300 transition-colors">
-                    View Payload
-                  </button>
-                </td>
-              </tr>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{comp.pricing}</TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" className="text-primary hover:text-primary/80">View Payload</Button>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 }
@@ -302,62 +299,64 @@ function CreativeStudioTab() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       <div>
-        <h3 className="text-xl font-medium text-white">Adaptive Scriptwriter (LLM Brain)</h3>
-        <p className="text-sm text-slate-400">Generate strictly compliant medical ad copy and Midjourney prompts.</p>
+        <h3 className="text-xl font-medium text-foreground">Adaptive Scriptwriter (LLM Brain)</h3>
+        <p className="text-sm text-muted-foreground">Generate strictly compliant medical ad copy and Midjourney prompts.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-[#0B1E3B] p-6 rounded-xl border border-[#1C2C4A]">
-          <h4 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
-            <Palette size={18} className="text-[#D4AF37]" /> Asset Configuration
-          </h4>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-slate-400 mb-1">Service Type</label>
-              <input value={serviceType} onChange={(e) => setServiceType(e.target.value)} type="text" placeholder="e.g. Premium Home Nursing" className="w-full bg-[#152441] border border-[#1C2C4A] text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#D4AF37]" />
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Palette size={18} className="text-primary" /> Asset Configuration
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Service Type</Label>
+              <Input value={serviceType} onChange={(e) => setServiceType(e.target.value)} placeholder="e.g. Premium Home Nursing" />
             </div>
-            <div>
-              <label className="block text-sm text-slate-400 mb-1">Target Audience</label>
-              <input value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} type="text" placeholder="e.g. High-income families with elderly parents" className="w-full bg-[#152441] border border-[#1C2C4A] text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#D4AF37]" />
+            <div className="space-y-2">
+              <Label>Target Audience</Label>
+              <Input value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} placeholder="e.g. High-income families with elderly parents" />
             </div>
-            <div>
-              <label className="block text-sm text-slate-400 mb-1">Special Offer</label>
-              <input value={specialOffer} onChange={(e) => setSpecialOffer(e.target.value)} type="text" placeholder="e.g. Free initial consultation" className="w-full bg-[#152441] border border-[#1C2C4A] text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#D4AF37]" />
+            <div className="space-y-2">
+              <Label>Special Offer</Label>
+              <Input value={specialOffer} onChange={(e) => setSpecialOffer(e.target.value)} placeholder="e.g. Free initial consultation" />
             </div>
             
-            <button 
+            <Button 
               onClick={handleGenerate}
               disabled={isGenerating || !serviceType || !targetAudience || !specialOffer}
-              className="w-full py-3 bg-gradient-to-r from-[#D4AF37] to-amber-500 text-[#0A192F] font-bold rounded-lg mt-4 hover:opacity-90 disabled:opacity-50 transition-opacity flex justify-center items-center gap-2"
+              className="w-full flex items-center gap-2 mt-4"
             >
               {isGenerating ? (
                 <>Generating Scripts <Loader2 className="animate-spin" size={18} /></>
               ) : (
                 <>Generate Compliant Copy <Zap size={18} /></>
               )}
-            </button>
-          </div>
-        </div>
+            </Button>
+          </CardContent>
+        </Card>
 
-        <div className="bg-[#0B1E3B] p-6 rounded-xl border border-[#1C2C4A] flex flex-col">
-          <h4 className="text-lg font-medium text-white mb-4 flex items-center justify-between">
-            <span>LLM Generated JSON</span>
-            <span className="text-xs bg-[#1C2C4A] text-emerald-400 px-2 py-1 rounded border border-emerald-400/30">Schema Verified</span>
-          </h4>
-          
-          <div className="flex-1 border-2 border-dashed border-[#1C2C4A] rounded-lg p-4 bg-[#152441]/50 overflow-auto text-xs font-mono text-emerald-300">
-            {isGenerating ? (
-              <div className="flex items-center justify-center h-full text-[#D4AF37]">
-                <Loader2 className="animate-spin mr-2" /> Orchestrating LLM...
-              </div>
-            ) : result ? (
-              <pre className="whitespace-pre-wrap">{JSON.stringify(result, null, 2)}</pre>
-            ) : (
-              <span className="text-slate-500 flex items-center justify-center h-full">Waiting for generation...</span>
-            )}
-          </div>
-        </div>
+        <Card className="flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg">LLM Generated JSON</CardTitle>
+            <span className="text-xs bg-card border border-emerald-500/30 text-emerald-500 px-2 py-1 rounded">Schema Verified</span>
+          </CardHeader>
+          <CardContent className="flex-1">
+            <div className="h-full min-h-[250px] border-2 border-dashed border-border rounded-lg p-4 bg-muted/50 overflow-auto text-xs font-mono text-emerald-400">
+              {isGenerating ? (
+                <div className="flex items-center justify-center h-full text-primary">
+                  <Loader2 className="animate-spin mr-2" /> Orchestrating LLM...
+                </div>
+              ) : result ? (
+                <pre className="whitespace-pre-wrap">{JSON.stringify(result, null, 2)}</pre>
+              ) : (
+                <span className="text-muted-foreground flex items-center justify-center h-full">Waiting for generation...</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
@@ -375,59 +374,63 @@ function CrmPipelineTab() {
     <div className="space-y-6 animate-in fade-in duration-300 h-full flex flex-col">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-xl font-medium text-white">CRM Lead Pipeline</h3>
-          <p className="text-sm text-slate-400">Interactive Kanban board for client lifecycle management</p>
+          <h3 className="text-xl font-medium text-foreground">CRM Lead Pipeline</h3>
+          <p className="text-sm text-muted-foreground">Interactive Kanban board for client lifecycle management</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-[#D4AF37] hover:bg-amber-400 text-[#0A192F] font-bold rounded-lg text-sm transition-colors shadow-[0_0_15px_rgba(212,175,55,0.3)]">
+        <Button className="flex items-center gap-2">
           <Plus size={16} /> Add Lead
-        </button>
+        </Button>
       </div>
 
       <div className="flex gap-4 overflow-x-auto pb-4 pt-2">
         {stages.map((stage) => (
           <div key={stage.id} className="w-80 flex-shrink-0 flex flex-col gap-3">
-            <div className={`flex justify-between items-center bg-[#0B1E3B] p-3 rounded-lg border-t-2 ${stage.color} border-l border-r border-b border-[#1C2C4A]`}>
-              <h4 className="font-medium text-white text-sm">{stage.title}</h4>
-              <span className="bg-[#1C2C4A] text-slate-300 text-xs px-2 py-1 rounded-full">{stage.count}</span>
+            <div className={`flex justify-between items-center bg-card p-3 rounded-lg border-t-2 ${stage.color} border-l border-r border-b border-border`}>
+              <h4 className="font-medium text-foreground text-sm">{stage.title}</h4>
+              <span className="bg-muted text-muted-foreground text-xs px-2 py-1 rounded-full">{stage.count}</span>
             </div>
             
             {/* Mock Kanban Cards */}
-            <div className="bg-[#0B1E3B] p-4 rounded-lg border border-[#1C2C4A] hover:border-[#D4AF37]/50 transition-colors cursor-grab shadow-sm">
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-xs font-semibold text-[#D4AF37] bg-[#D4AF37]/10 px-2 py-1 rounded">Nursing Care</span>
-                <span className="text-xs text-slate-500">2h ago</span>
-              </div>
-              <h5 className="font-medium text-white mb-1">Sarah Jenkins</h5>
-              <p className="text-xs text-slate-400 mb-3">+20 100 123 4567</p>
-              <div className="flex justify-between items-center border-t border-[#1C2C4A] pt-3 mt-1">
-                <span className="text-xs text-slate-500">Source: Meta Ads</span>
-                <button className="text-slate-400 hover:text-[#D4AF37] transition-colors">
-                  <ArrowRight size={14} />
-                </button>
-              </div>
-            </div>
-
-            {/* Second Mock Card for variety */}
-            {stage.id === 'New_Lead' && (
-              <div className="bg-[#0B1E3B] p-4 rounded-lg border border-[#1C2C4A] hover:border-[#D4AF37]/50 transition-colors cursor-grab shadow-sm">
+            <Card className="cursor-grab hover:border-primary/50 transition-colors">
+              <CardContent className="p-4">
                 <div className="flex justify-between items-start mb-2">
-                  <span className="text-xs font-semibold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded">Nanny</span>
-                  <span className="text-xs text-slate-500">5h ago</span>
+                  <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded">Nursing Care</span>
+                  <span className="text-xs text-muted-foreground">2h ago</span>
                 </div>
-                <h5 className="font-medium text-white mb-1">Ahmed Hassan</h5>
-                <p className="text-xs text-slate-400 mb-3">+20 111 987 6543</p>
-                <div className="flex justify-between items-center border-t border-[#1C2C4A] pt-3 mt-1">
-                  <span className="text-xs text-slate-500">Source: Google Search</span>
-                  <button className="text-slate-400 hover:text-[#D4AF37] transition-colors">
+                <h5 className="font-medium text-foreground mb-1">Sarah Jenkins</h5>
+                <p className="text-xs text-muted-foreground mb-3">+20 100 123 4567</p>
+                <div className="flex justify-between items-center border-t border-border pt-3 mt-1">
+                  <span className="text-xs text-muted-foreground">Source: Meta Ads</span>
+                  <button className="text-muted-foreground hover:text-primary transition-colors">
                     <ArrowRight size={14} />
                   </button>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
+
+            {/* Second Mock Card for variety */}
+            {stage.id === 'New_Lead' && (
+              <Card className="cursor-grab hover:border-primary/50 transition-colors">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-xs font-semibold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">Nanny</span>
+                    <span className="text-xs text-muted-foreground">5h ago</span>
+                  </div>
+                  <h5 className="font-medium text-foreground mb-1">Ahmed Hassan</h5>
+                  <p className="text-xs text-muted-foreground mb-3">+20 111 987 6543</p>
+                  <div className="flex justify-between items-center border-t border-border pt-3 mt-1">
+                    <span className="text-xs text-muted-foreground">Source: Google Search</span>
+                    <button className="text-muted-foreground hover:text-primary transition-colors">
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
             )}
             
             {/* Empty state zone */}
-            <div className="h-20 border-2 border-dashed border-[#1C2C4A]/50 rounded-lg flex items-center justify-center">
-              <span className="text-xs text-slate-600">Drop here</span>
+            <div className="h-20 border-2 border-dashed border-border/50 rounded-lg flex items-center justify-center">
+              <span className="text-xs text-muted-foreground">Drop here</span>
             </div>
           </div>
         ))}
@@ -442,28 +445,32 @@ function GlobalSettingsTab() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       <div>
-        <h3 className="text-xl font-medium text-white">Global Settings Module</h3>
-        <p className="text-sm text-slate-400">Manage API integrations and financial expectations securely.</p>
+        <h3 className="text-xl font-medium text-foreground">Global Settings Module</h3>
+        <p className="text-sm text-muted-foreground">Manage API integrations and financial expectations securely.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-[#0B1E3B] p-6 rounded-xl border border-[#1C2C4A]">
-          <h4 className="text-lg font-medium text-white mb-4 border-b border-[#1C2C4A] pb-2">Financial Control Center</h4>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-slate-400 mb-1">VIP Segment Target CPL (EGP)</label>
-              <input type="number" defaultValue={150} className="w-full bg-[#152441] border border-[#1C2C4A] text-[#D4AF37] font-bold rounded-lg px-4 py-2 focus:outline-none focus:border-[#D4AF37]" />
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Financial Control Center</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>VIP Segment Target CPL (EGP)</Label>
+              <Input type="number" defaultValue={150} className="text-primary font-bold" />
             </div>
-            <div>
-              <label className="block text-sm text-slate-400 mb-1">Standard Segment Target CPL (EGP)</label>
-              <input type="number" defaultValue={50} className="w-full bg-[#152441] border border-[#1C2C4A] text-[#D4AF37] font-bold rounded-lg px-4 py-2 focus:outline-none focus:border-[#D4AF37]" />
+            <div className="space-y-2">
+              <Label>Standard Segment Target CPL (EGP)</Label>
+              <Input type="number" defaultValue={50} className="text-primary font-bold" />
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-[#0B1E3B] p-6 rounded-xl border border-[#1C2C4A]">
-          <h4 className="text-lg font-medium text-white mb-4 border-b border-[#1C2C4A] pb-2">API Keys & Webhooks Manager</h4>
-          <div className="space-y-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">API Keys & Webhooks Manager</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             {[
               { label: 'Meta API Key', id: 'meta' },
               { label: 'Midjourney Config', id: 'mj' },
@@ -471,22 +478,22 @@ function GlobalSettingsTab() {
               { label: 'ElevenLabs Voice', id: 'eleven' },
               { label: 'Gemini/OpenAI Key', id: 'llm' },
             ].map(key => (
-              <div key={key.id}>
-                <label className="block text-xs text-slate-400 mb-1">{key.label}</label>
-                <input type="password" placeholder="••••••••••••••••" className="w-full bg-[#152441] border border-[#1C2C4A] text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#D4AF37]" />
+              <div key={key.id} className="space-y-2">
+                <Label>{key.label}</Label>
+                <Input type="password" placeholder="••••••••••••••••" />
               </div>
             ))}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
       
       <div className="flex justify-end">
-        <button 
+        <Button 
           onClick={() => { setSaving(true); setTimeout(() => setSaving(false), 1000); }}
-          className="flex items-center gap-2 px-6 py-3 bg-[#D4AF37] text-[#0A192F] font-bold rounded-lg hover:bg-amber-400 transition-colors shadow-[0_0_15px_rgba(212,175,55,0.2)]"
+          className="flex items-center gap-2"
         >
           {saving ? 'Saving Config...' : <><Save size={18} /> Update Global Architecture</>}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -496,13 +503,15 @@ function CreativeReviewTab() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       <div>
-        <h3 className="text-xl font-medium text-white">Creative Review (Human-in-the-Loop)</h3>
-        <p className="text-sm text-slate-400">Review AI-generated medical assets to prevent policy violations.</p>
+        <h3 className="text-xl font-medium text-foreground">Creative Review (Human-in-the-Loop)</h3>
+        <p className="text-sm text-muted-foreground">Review AI-generated medical assets to prevent policy violations.</p>
       </div>
-      <div className="bg-[#0B1E3B] p-6 rounded-xl border border-[#1C2C4A] text-center text-slate-400 py-12">
-        <ShieldCheck size={48} className="mx-auto mb-4 text-[#D4AF37] opacity-50" />
-        <p>No creatives are currently pending approval.</p>
-      </div>
+      <Card className="text-center py-12 border-dashed border-2">
+        <CardContent className="flex flex-col items-center justify-center p-6">
+          <ShieldCheck size={48} className="mb-4 text-primary opacity-50" />
+          <p className="text-muted-foreground">No creatives are currently pending approval.</p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
