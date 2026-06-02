@@ -341,19 +341,22 @@ function CreativeStudioTab() {
 
   const handleGenerate = async () => {
     setIsGenerating(true);
+    setResult(null);
     try {
-      const res = await fetch('/api/llm/generate-scripts', {
+      const res = await fetch('/api/marketing/generation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ serviceType, targetAudience, specialOffer })
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setResult(data.data);
       } else {
-        console.error('Generation failed:', data.error);
+        alert(`Generation failed: ${data.error || 'Unknown server error'}`);
+        console.error('Generation failed:', data);
       }
-    } catch (e) {
+    } catch (e: any) {
+      alert(`Network or Fetch Error: ${e.message}`);
       console.error(e);
     }
     setIsGenerating(false);
