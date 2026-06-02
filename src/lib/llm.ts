@@ -5,46 +5,46 @@ import { GoogleGenAI, Type, Schema } from '@google/genai';
 // but in a production SaaS, this might be fetched from the global_settings DB table.
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// Reusable schema for Market Sentiment Analysis
+// Reusable schema for Market Sentiment Analysis (Competitor Spy)
 export const MarketAnalysisSchema: Schema = {
   type: Type.OBJECT,
   properties: {
-    competitor_weaknesses: {
+    seo_keywords: {
       type: Type.ARRAY,
       items: { type: Type.STRING },
-      description: "List of extracted competitor weaknesses."
+      description: "List of top-performing Arabic SEO keywords extracted from the competitor."
     },
-    recommended_angles: {
+    strategic_weaknesses: {
       type: Type.ARRAY,
       items: { type: Type.STRING },
-      description: "List of recommended ad angles."
+      description: "List of strategic weaknesses in the competitor's copy."
+    },
+    hybrid_superior_script: {
+      type: Type.STRING,
+      description: "A highly persuasive Arabic ad script that exploits their weaknesses."
     }
   },
-  required: ["competitor_weaknesses", "recommended_angles"]
+  required: ["seo_keywords", "strategic_weaknesses", "hybrid_superior_script"]
 };
 
 // Reusable schema for Script Generation
 export const ScriptGenerationSchema: Schema = {
   type: Type.OBJECT,
   properties: {
-    short_hook: {
+    headline: {
       type: Type.STRING,
-      description: "Short hook for Reels (max 15 seconds reading time)."
+      description: "Short, punchy Arabic headline for the ad."
     },
-    long_copy: {
+    primary_text: {
       type: Type.STRING,
-      description: "Trust-building Facebook post text."
+      description: "Main Arabic ad copy text, highly compliant and persuasive."
     },
-    sales_whatsapp_reply: {
+    image_prompt: {
       type: Type.STRING,
-      description: "Professional template for the CRM team."
-    },
-    midjourney_prompt: {
-      type: Type.STRING,
-      description: "Highly engineered Midjourney prompt."
+      description: "English ONLY Midjourney prompt to generate the ad visual."
     }
   },
-  required: ["short_hook", "long_copy", "sales_whatsapp_reply", "midjourney_prompt"]
+  required: ["headline", "primary_text", "image_prompt"]
 };
 
 export { ai };

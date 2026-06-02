@@ -5,7 +5,7 @@ import {
   Activity, Eye, Palette, Users, 
   TrendingUp, Play, Zap, 
   Search, Plus, Save, 
-  ArrowRight, Settings, ShieldCheck, Loader2
+  ArrowRight, Settings, ShieldCheck, Loader2, CheckCircle2, AlertCircle
 } from 'lucide-react';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -20,9 +20,26 @@ function checkAccessSettings(role: string) { return role === 'SuperAdmin'; }
 function checkAccessMarketing(role: string) { return role === 'SuperAdmin'; }
 function checkAccessPipeline(role: string) { return role === 'SuperAdmin' || role === 'Sales' || role === 'CRM'; }
 
+// Polished Toast Component
+function Toast({ message, type, onClose }: { message: string, type: 'success' | 'error', onClose: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 4000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-right-8 fade-in duration-300">
+      <div className={`flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border ${type === 'success' ? 'bg-[#0B1E3B] border-primary text-white' : 'bg-red-950 border-red-500 text-white'}`}>
+        {type === 'success' ? <CheckCircle2 className="text-primary" size={24} /> : <AlertCircle className="text-red-500" size={24} />}
+        <p className="font-medium">{message}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const [role, setRole] = useState<string>('SuperAdmin');
-  const [activeTab, setActiveTab] = useState('autopilot');
+  const [activeTab, setActiveTab] = useState('creative');
 
   const navigation = [
     { id: 'autopilot', label: 'Ads Control Tower', icon: Activity, access: checkAccessMarketing },
@@ -38,7 +55,7 @@ export default function DashboardPage() {
       {/* Integrated Client-Side Sidebar Controller */}
       <aside className="w-64 border-r border-border bg-card hidden md:flex flex-col">
         <div className="p-6 border-b border-border">
-          <h1 className="text-xl font-bold text-primary tracking-wider uppercase">Omni<span className="text-white">Care</span></h1>
+          <h1 className="text-xl font-bold text-primary tracking-wider uppercase">Nexus<span className="text-white">AI</span></h1>
           <p className="text-xs text-muted-foreground mt-1">Enterprise Marketing SaaS</p>
         </div>
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
@@ -98,7 +115,7 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        <div className="p-8 max-w-7xl mx-auto">
+        <div className="p-8 max-w-7xl mx-auto pb-32">
           {activeTab === 'autopilot' && checkAccessMarketing(role) && <AutopilotTab />}
           {activeTab === 'spy' && checkAccessMarketing(role) && <CompetitorSpyTab />}
           {activeTab === 'creative' && checkAccessMarketing(role) && <CreativeStudioTab />}
@@ -172,41 +189,46 @@ function AutopilotTab() {
 
 function CompetitorSpyTab() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [brandName, setBrandName] = useState('');
+  const [industry, setIndustry] = useState('');
   const [competitorData, setCompetitorData] = useState('');
   const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [toast, setToast] = useState<{ message: string, type: 'success'|'error' } | null>(null);
 
   const competitors = [
     { name: 'Elite Care Services', keywords: ['home nursing', 'elderly care'], ads: 12, pricing: '$60/hr' },
-    { name: 'NannyPro Egypt', keywords: ['nanny cairo', 'childcare'], ads: 8, pricing: '$45/hr' },
     { name: 'CleanSweep Maadi', keywords: ['housekeeping', 'deep clean'], ads: 24, pricing: '$25/hr' },
   ];
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
+    setAnalysisResult(null);
     try {
       const res = await fetch('/api/llm/analyze-market', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ competitorData })
+        body: JSON.stringify({ brandName, industry, competitorData })
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setAnalysisResult(data.data);
+        setToast({ message: 'Intelligence Extracted Successfully', type: 'success' });
       } else {
-        console.error('Analysis failed:', data.error);
+        setToast({ message: `Analysis failed: ${data.error || 'Server error'}`, type: 'error' });
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setToast({ message: `Network Error: ${e.message}`, type: 'error' });
     }
     setIsAnalyzing(false);
   };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-xl font-medium text-foreground">Competitor Intelligence Hub</h3>
-          <p className="text-sm text-muted-foreground">Track active ad scripts, keywords, and pricing matrices</p>
+          <p className="text-sm text-muted-foreground">Reverse-engineer competitors for any brand or niche.</p>
         </div>
       </div>
 
@@ -214,23 +236,33 @@ function CompetitorSpyTab() {
         <Card className="bg-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg text-white">
-              <Search size={18} className="text-primary" /> Market Sentiment Analyzer (LLM)
+              <Search size={18} className="text-primary" /> Strategy Extraction Engine
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Your Brand Name</Label>
+                <Input value={brandName} onChange={(e) => setBrandName(e.target.value)} placeholder="e.g. Palm Hills" className="bg-background border-border text-foreground focus-visible:ring-primary" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Industry / Niche</Label>
+                <Input value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="e.g. Real Estate" className="bg-background border-border text-foreground focus-visible:ring-primary" />
+              </div>
+            </div>
             <div className="space-y-2">
-              <Label className="text-muted-foreground">Raw Competitor Data (Paste scraped ads/pricing)</Label>
+              <Label className="text-muted-foreground">Raw Competitor Data (Paste text or URL)</Label>
               <Textarea 
                 rows={4}
                 value={competitorData} 
                 onChange={(e) => setCompetitorData(e.target.value)} 
-                placeholder="Paste data here to extract weaknesses and angles..." 
+                placeholder="Paste ad copy, landing page text, or competitor URLs..." 
                 className="resize-none bg-background border-border text-foreground focus-visible:ring-primary"
               />
             </div>
             <Button 
               onClick={handleAnalyze}
-              disabled={isAnalyzing || !competitorData}
+              disabled={isAnalyzing || !competitorData || !brandName || !industry}
               className="w-full flex items-center gap-2 bg-primary text-background font-bold hover:bg-amber-400 shadow-[0_0_10px_rgba(212,175,55,0.2)]"
             >
               {isAnalyzing ? (
@@ -243,41 +275,48 @@ function CompetitorSpyTab() {
         </Card>
 
         {/* Componentized Parsing Block */}
-        <Card className="flex flex-col bg-card">
+        <Card className="flex flex-col bg-card border-primary/20 shadow-[0_0_15px_rgba(212,175,55,0.05)]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b border-border/50 mb-2">
-            <CardTitle className="text-lg text-white">Actionable Insights</CardTitle>
-            <span className="text-xs bg-emerald-900/30 border border-emerald-500/30 text-emerald-400 px-2 py-1 rounded">Schema Verified</span>
+            <CardTitle className="text-lg text-white">Actionable Intelligence (Arabic)</CardTitle>
+            {analysisResult && <span className="text-xs bg-emerald-900/30 border border-emerald-500/30 text-emerald-400 px-2 py-1 rounded">God-Tier Extracted</span>}
           </CardHeader>
-          <CardContent className="flex-1 overflow-auto max-h-[300px]">
+          <CardContent className="flex-1 overflow-auto max-h-[450px]">
             {isAnalyzing ? (
               <div className="flex items-center justify-center h-full text-primary">
-                <Loader2 className="animate-spin mr-2" /> Processing Intelligence...
+                <Loader2 className="animate-spin mr-2" size={24} /> Processing Intelligence...
               </div>
             ) : analysisResult ? (
-              <div className="space-y-4 pt-2">
+              <div className="space-y-6 pt-2">
                 <div>
-                  <h4 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
-                    <ShieldCheck size={14} /> Competitor Weaknesses
+                  <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-2 uppercase tracking-wide">
+                    <Search size={14} /> Top SEO Keywords
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {(analysisResult.seo_keywords || []).map((kw: string, idx: number) => (
+                      <span key={idx} className="px-2 py-1 bg-background border border-border rounded-md text-xs font-medium text-slate-200">
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-2 uppercase tracking-wide">
+                    <ShieldCheck size={14} /> Strategic Weaknesses
                   </h4>
                   <div className="grid grid-cols-1 gap-2">
-                    {(analysisResult.weaknesses || []).map((w: any, idx: number) => (
-                      <div key={idx} className="p-3 bg-background border border-border rounded-lg text-sm text-muted-foreground">
-                        {w.description || w}
+                    {(analysisResult.strategic_weaknesses || []).map((w: string, idx: number) => (
+                      <div key={idx} className="p-3 bg-background border border-border rounded-lg text-sm text-muted-foreground text-right" dir="rtl">
+                        {w}
                       </div>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
-                    <Zap size={14} /> Recommended Exploitation Angles
+                  <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-2 uppercase tracking-wide">
+                    <Zap size={14} /> Hybrid Superior Ad Script
                   </h4>
-                  <div className="grid grid-cols-1 gap-2">
-                    {(analysisResult.angles || []).map((a: any, idx: number) => (
-                      <div key={idx} className="p-3 bg-primary/10 border border-primary/20 rounded-lg text-sm text-slate-200">
-                        <strong className="text-primary block mb-1">{a.title || 'Angle'}</strong>
-                        {a.description || a}
-                      </div>
-                    ))}
+                  <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg text-sm text-slate-200 leading-relaxed text-right" dir="rtl">
+                    {analysisResult.hybrid_superior_script}
                   </div>
                 </div>
               </div>
@@ -289,55 +328,19 @@ function CompetitorSpyTab() {
           </CardContent>
         </Card>
       </div>
-
-      <Card className="bg-card overflow-hidden">
-        <Table>
-          <TableHeader className="bg-background">
-            <TableRow className="border-border">
-              <TableHead className="text-muted-foreground">Competitor</TableHead>
-              <TableHead className="text-muted-foreground">Top Keywords</TableHead>
-              <TableHead className="text-muted-foreground">Active Ads</TableHead>
-              <TableHead className="text-muted-foreground">Est. Pricing</TableHead>
-              <TableHead className="text-right text-muted-foreground">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {competitors.map((comp, i) => (
-              <TableRow key={i} className="border-border hover:bg-muted/50">
-                <TableCell className="font-medium text-white">{comp.name}</TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    {comp.keywords.map(kw => (
-                      <span key={kw} className="px-2 py-1 bg-background text-muted-foreground text-xs rounded border border-border">
-                        {kw}
-                      </span>
-                    ))}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <span className="flex items-center gap-1 text-primary font-medium">
-                    <Play size={14} fill="currentColor" /> {comp.ads} live
-                  </span>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{comp.pricing}</TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" className="text-primary hover:text-primary hover:bg-primary/10 transition-colors">View Payload</Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
     </div>
   );
 }
 
 function CreativeStudioTab() {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [brandName, setBrandName] = useState('');
+  const [industry, setIndustry] = useState('');
   const [serviceType, setServiceType] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
   const [specialOffer, setSpecialOffer] = useState('');
   const [result, setResult] = useState<any>(null);
+  const [toast, setToast] = useState<{ message: string, type: 'success'|'error' } | null>(null);
 
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -346,27 +349,27 @@ function CreativeStudioTab() {
       const res = await fetch('/api/marketing/generation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ serviceType, targetAudience, specialOffer })
+        body: JSON.stringify({ brandName, industry, serviceType, targetAudience, specialOffer })
       });
       const data = await res.json();
       if (res.ok && data.success) {
         setResult(data.data);
+        setToast({ message: 'Assets Generated Successfully', type: 'success' });
       } else {
-        alert(`Generation failed: ${data.error || 'Unknown server error'}`);
-        console.error('Generation failed:', data);
+        setToast({ message: `Generation failed: ${data.error || 'Server error'}`, type: 'error' });
       }
     } catch (e: any) {
-      alert(`Network or Fetch Error: ${e.message}`);
-      console.error(e);
+      setToast({ message: `Network Error: ${e.message}`, type: 'error' });
     }
     setIsGenerating(false);
   };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <div>
-        <h3 className="text-xl font-medium text-foreground">Adaptive Scriptwriter (LLM Brain)</h3>
-        <p className="text-sm text-muted-foreground">Generate strictly compliant medical ad copy and Midjourney prompts.</p>
+        <h3 className="text-xl font-medium text-foreground">Adaptive Scriptwriter (God-Tier LLM)</h3>
+        <p className="text-sm text-muted-foreground">Generate elite Arabic ad copy and cinematic English Midjourney prompts dynamically.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -377,57 +380,68 @@ function CreativeStudioTab() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Brand Name</Label>
+                <Input value={brandName} onChange={(e) => setBrandName(e.target.value)} placeholder="e.g. Palm Hills" className="bg-background border-border text-foreground focus-visible:ring-primary" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Industry / Niche</Label>
+                <Input value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="e.g. Real Estate" className="bg-background border-border text-foreground focus-visible:ring-primary" />
+              </div>
+            </div>
             <div className="space-y-2">
-              <Label className="text-muted-foreground">Service Type</Label>
-              <Input className="bg-background border-border text-foreground focus-visible:ring-primary" value={serviceType} onChange={(e) => setServiceType(e.target.value)} placeholder="e.g. Premium Home Nursing" />
+              <Label className="text-muted-foreground">Service / Product</Label>
+              <Input className="bg-background border-border text-foreground focus-visible:ring-primary" value={serviceType} onChange={(e) => setServiceType(e.target.value)} placeholder="e.g. Luxury Villas Phase 2" />
             </div>
             <div className="space-y-2">
               <Label className="text-muted-foreground">Target Audience</Label>
-              <Input className="bg-background border-border text-foreground focus-visible:ring-primary" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} placeholder="e.g. High-income families with elderly parents" />
+              <Input className="bg-background border-border text-foreground focus-visible:ring-primary" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} placeholder="e.g. High-net-worth investors" />
             </div>
             <div className="space-y-2">
               <Label className="text-muted-foreground">Special Offer</Label>
-              <Input className="bg-background border-border text-foreground focus-visible:ring-primary" value={specialOffer} onChange={(e) => setSpecialOffer(e.target.value)} placeholder="e.g. Free initial consultation" />
+              <Input className="bg-background border-border text-foreground focus-visible:ring-primary" value={specialOffer} onChange={(e) => setSpecialOffer(e.target.value)} placeholder="e.g. 10% downpayment, 10 years installments" />
             </div>
             
             <Button 
               onClick={handleGenerate}
-              disabled={isGenerating || !serviceType || !targetAudience || !specialOffer}
+              disabled={isGenerating || !brandName || !industry || !serviceType || !targetAudience || !specialOffer}
               className="w-full flex items-center gap-2 mt-4 bg-primary text-background font-bold hover:bg-amber-400 shadow-[0_0_10px_rgba(212,175,55,0.2)]"
             >
               {isGenerating ? (
-                <>Generating Scripts <Loader2 className="animate-spin" size={18} /></>
+                <>Orchestrating God-Tier Output <Loader2 className="animate-spin" size={18} /></>
               ) : (
-                <>Generate Compliant Copy <Zap size={18} /></>
+                <>Generate Elite Campaign <Zap size={18} /></>
               )}
             </Button>
           </CardContent>
         </Card>
 
         {/* Componentized Parsing Block */}
-        <Card className="flex flex-col bg-card">
+        <Card className="flex flex-col bg-card border-primary/20 shadow-[0_0_15px_rgba(212,175,55,0.05)]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b border-border/50 mb-2">
             <CardTitle className="text-lg text-white">Generated Assets</CardTitle>
-            <span className="text-xs bg-emerald-900/30 border border-emerald-500/30 text-emerald-400 px-2 py-1 rounded">Schema Verified</span>
+            {result && <span className="text-xs bg-emerald-900/30 border border-emerald-500/30 text-emerald-400 px-2 py-1 rounded">God-Tier Verified</span>}
           </CardHeader>
-          <CardContent className="flex-1 overflow-auto max-h-[350px]">
+          <CardContent className="flex-1 overflow-auto max-h-[450px]">
             {isGenerating ? (
-              <div className="flex items-center justify-center h-full text-primary">
-                <Loader2 className="animate-spin mr-2" /> Orchestrating LLM...
+              <div className="flex flex-col items-center justify-center h-full text-primary gap-4">
+                <Loader2 className="animate-spin" size={32} />
+                <p className="text-sm text-muted-foreground animate-pulse">Engineering direct-response hooks...</p>
               </div>
             ) : result ? (
               <div className="space-y-4 pt-2">
-                 <div className="p-3 bg-background border border-border rounded-lg text-sm text-slate-200">
-                    <strong className="text-primary block mb-1">Headline</strong>
-                    {result.headline}
+                 <div className="p-4 bg-background border border-border rounded-xl shadow-sm text-right" dir="rtl">
+                    <strong className="text-primary block mb-2 text-sm uppercase tracking-wider">Arabic Headline</strong>
+                    <p className="text-lg font-bold text-white leading-tight">{result.headline}</p>
                  </div>
-                 <div className="p-3 bg-background border border-border rounded-lg text-sm text-slate-200">
-                    <strong className="text-primary block mb-1">Primary Text (Ad Copy)</strong>
-                    {result.primary_text}
+                 <div className="p-4 bg-background border border-border rounded-xl shadow-sm text-right" dir="rtl">
+                    <strong className="text-primary block mb-2 text-sm uppercase tracking-wider">Arabic Primary Text (Copy)</strong>
+                    <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{result.primary_text}</p>
                  </div>
-                 <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg text-sm text-slate-200">
-                    <strong className="text-primary block mb-1">Midjourney Prompt (Visual)</strong>
-                    <code className="text-xs font-mono break-all">{result.image_prompt}</code>
+                 <div className="p-4 bg-primary/10 border border-primary/30 rounded-xl shadow-sm text-left">
+                    <strong className="text-primary block mb-2 text-sm uppercase tracking-wider">Midjourney Visual Prompt (English)</strong>
+                    <code className="text-xs font-mono text-slate-300 break-all p-2 bg-black/30 rounded block border border-black/50">{result.image_prompt}</code>
                  </div>
               </div>
             ) : (
@@ -458,13 +472,9 @@ function CrmPipelineTab() {
           throw new Error("No data or DB unreachable");
         }
       } catch (error) {
-        // Fallback robust mock
         setLeads([
           { id: '1', name: 'Sarah Jenkins', phone_number: '+20 100 123 4567', service_type: 'Premium Nursing', conversion_stage: 'New_Lead', utm_source: 'Meta Ads' },
           { id: '2', name: 'Ahmed Hassan', phone_number: '+20 111 987 6543', service_type: 'Elderly Care', conversion_stage: 'Bot_Chatting', utm_source: 'Google Search' },
-          { id: '3', name: 'Mona Zaki', phone_number: '+20 122 345 6789', service_type: 'NannyPro', conversion_stage: 'Interview_Scheduled', utm_source: 'Direct' },
-          { id: '4', name: 'Khaled Omar', phone_number: '+20 155 555 1234', service_type: 'Premium Nursing', conversion_stage: 'Closed_Won', utm_source: 'Meta Ads' },
-          { id: '5', name: 'Nadia Farouk', phone_number: '+20 100 999 8888', service_type: 'Physiotherapy', conversion_stage: 'New_Lead', utm_source: 'TikTok Ads' },
         ]);
       } finally {
         setIsLoading(false);
@@ -525,12 +535,6 @@ function CrmPipelineTab() {
                     </CardContent>
                   </Card>
                 ))}
-                
-                {stageLeads.length === 0 && (
-                  <div className="h-20 border-2 border-dashed border-border/50 rounded-lg flex items-center justify-center bg-card/50">
-                    <span className="text-xs text-muted-foreground">Drop here</span>
-                  </div>
-                )}
               </div>
             )
           })}
@@ -605,7 +609,7 @@ function CreativeReviewTab() {
     <div className="space-y-6 animate-in fade-in duration-300">
       <div>
         <h3 className="text-xl font-medium text-foreground">Creative Review (Human-in-the-Loop)</h3>
-        <p className="text-sm text-muted-foreground">Review AI-generated medical assets to prevent policy violations.</p>
+        <p className="text-sm text-muted-foreground">Review AI-generated assets to prevent policy violations.</p>
       </div>
       <Card className="text-center py-12 border-dashed border-2 border-border bg-card">
         <CardContent className="flex flex-col items-center justify-center p-6">

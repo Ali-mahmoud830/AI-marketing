@@ -4,6 +4,8 @@ import { ai } from '@/lib/llm';
 import { Type, Schema } from '@google/genai';
 
 const GenerationRequestSchema = z.object({
+  brandName: z.string().min(1),
+  industry: z.string().min(1),
   serviceType: z.string().min(1),
   targetAudience: z.string().min(1),
   specialOffer: z.string().min(1),
@@ -14,15 +16,15 @@ const GenerationOutputSchema: Schema = {
   properties: {
     headline: {
       type: Type.STRING,
-      description: "Short, punchy headline for the ad."
+      description: "Short, punchy Arabic headline for the ad."
     },
     primary_text: {
       type: Type.STRING,
-      description: "Main ad copy text, highly compliant and professional."
+      description: "Main Arabic ad copy text, highly compliant and persuasive."
     },
     image_prompt: {
       type: Type.STRING,
-      description: "Midjourney prompt to generate the ad visual."
+      description: "English ONLY Midjourney prompt to generate the ad visual."
     }
   },
   required: ["headline", "primary_text", "image_prompt"]
@@ -35,23 +37,25 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { serviceType, targetAudience, specialOffer } = GenerationRequestSchema.parse(body);
+    const { brandName, industry, serviceType, targetAudience, specialOffer } = GenerationRequestSchema.parse(body);
 
-    const prompt = `You are an Elite Medical Copywriter and AI Prompter.
-Generate marketing assets for the following OmniCare service:
-- Service: ${serviceType}
-- Target Audience: ${targetAudience}
-- Special Offer: ${specialOffer}
+    const prompt = `You are a world-class, elite direct-response copywriter and marketing strategist. 
+Brand: ${brandName} 
+Industry: ${industry}
 
-STRICT COMPLIANCE RULES (Meta Medical Policies):
-- Do NOT make "before/after" promises.
-- Do NOT guarantee any cures or specific medical outcomes.
-- Maintain a highly professional, trust-building tone.
+Task: Write highly persuasive, conversion-optimized ad copy for the following service: ${serviceType}, targeting: ${targetAudience}, with this offer: ${specialOffer}. 
 
-MIDJOURNEY PROMPT RULES:
-- Create a highly engineered prompt for a photorealistic medical scene representing the service.
-- You MUST append exactly: --ar 9:16 --v 6.0
-- Include explicit negative constraints to prevent distortion (e.g., "no distorted hands, no fake medical equipment, no unprofessional attire, anatomical correctness").
+STRICT COPYWRITING RULES (Arabic):
+1. The ad copy (headline and primary_text) MUST be written in highly fluent, persuasive, and culturally resonant Arabic. It must sound like it was written by an elite Arab marketing director. DO NOT SOUND LIKE A MACHINE TRANSLATION.
+2. The copy MUST use powerful psychological hooks, address deep pain points, and have a compelling Call-to-Action (CTA).
+3. If the industry is medical, maintain strict compliance (no guarantees, no before/afters). Otherwise, adapt perfectly to the ${industry}.
+
+STRICT MIDJOURNEY PROMPT RULES (English ONLY):
+1. The Midjourney prompt MUST ALWAYS be in English.
+2. Make it highly cinematic, professional, and perfectly aligned with the ${industry} and ${serviceType}.
+3. Absolutely NO medical imagery unless the industry is specifically medical/healthcare.
+4. Use parameters exactly: --ar 16:9 --v 6.0 --style raw
+5. Include explicit negative constraints to prevent distortion (e.g., "no distorted hands, anatomical correctness, professional").
 
 You must return ONLY valid JSON matching the required schema.`;
 
@@ -61,13 +65,11 @@ You must return ONLY valid JSON matching the required schema.`;
       config: {
         responseMimeType: 'application/json',
         responseSchema: GenerationOutputSchema,
-        temperature: 0.7,
+        temperature: 0.8,
       }
     });
 
-    if (!response.text) {
-      throw new Error('Gemini API returned an empty response.');
-    }
+    if (!response.text) throw new Error('Gemini API returned an empty response.');
 
     let result;
     try {
