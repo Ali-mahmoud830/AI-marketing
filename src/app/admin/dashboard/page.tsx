@@ -475,13 +475,13 @@ function LeadCard({ lead }: { lead: any }) {
       <Card className="cursor-grab hover:border-primary/50 transition-colors bg-card shadow-sm border-border active:cursor-grabbing">
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-xs font-semibold text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded">{lead.service_type}</span>
+            <span className="text-xs font-semibold text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded">{lead.service}</span>
             <span className="text-xs text-muted-foreground">Recent</span>
           </div>
           <h5 className="font-medium text-white mb-1">{lead.name}</h5>
-          <p className="text-xs text-muted-foreground mb-3">{lead.phone_number}</p>
+          <p className="text-xs text-muted-foreground mb-3">{lead.phone}</p>
           <div className="flex justify-between items-center border-t border-border pt-3 mt-1">
-            <span className="text-xs text-muted-foreground">Source: {lead.utm_source || 'organic'}</span>
+            <span className="text-xs text-muted-foreground">Source: {lead.source || 'organic'}</span>
             <button className="text-muted-foreground hover:text-primary transition-colors">
               <ArrowRight size={14} />
             </button>
@@ -516,20 +516,21 @@ function CrmPipelineTab() {
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newLeadData, setNewLeadData] = useState({ name: '', phone: '', source: '', service: '' });
+  const [toast, setToast] = useState<{ message: string, type: 'success'|'error' } | null>(null);
 
-  // Dynamic Fetch - No Static Mock
   useEffect(() => {
     async function fetchCRMData() {
       try {
         const res = await fetch('/api/marketing/crm');
         const json = await res.json();
-        if (json.success && json.data && json.data.length > 0) {
+        if (json.success && json.data) {
           setLeads(json.data);
         } else {
           setLeads([]);
         }
       } catch (error) {
         setLeads([]);
+        setToast({ message: 'Database connection failed', type: 'error' });
       } finally {
         setIsLoading(false);
       }
@@ -537,31 +538,62 @@ function CrmPipelineTab() {
     fetchCRMData();
   }, []);
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = async (event: any) => {
     const { active, over } = event;
-    if (!over) return;
+    if (!over || active.id === over.id) return;
 
     const leadId = active.id;
     const newStage = over.id;
 
+    // Optimistic UI Update
     setLeads(currentLeads => 
-      currentLeads.map(l => l.id === leadId ? { ...l, conversion_stage: newStage } : l)
+      currentLeads.map(l => l.id === leadId ? { ...l, status: newStage } : l)
     );
+
+    try {
+      const res = await fetch('/api/marketing/crm', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId, newStage })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Failed to update lead');
+      }
+    } catch (e: any) {
+      setToast({ message: 'Failed to update lead status in DB', type: 'error' });
+    }
   };
 
-  const handleAddLead = () => {
-    if (!newLeadData.name) return;
-    const newLead = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: newLeadData.name,
-      phone_number: newLeadData.phone,
-      service_type: newLeadData.service || 'General Inquiry',
-      conversion_stage: 'New_Lead',
-      utm_source: newLeadData.source || 'Manual Entry',
-    };
-    setLeads([...leads, newLead]);
-    setIsModalOpen(false);
-    setNewLeadData({ name: '', phone: '', source: '', service: '' });
+  const handleAddLead = async () => {
+    if (!newLeadData.name || !newLeadData.phone) {
+      setToast({ message: 'Name and Phone are required', type: 'error' });
+      return;
+    }
+    
+    try {
+      const res = await fetch('/api/marketing/crm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newLeadData.name,
+          phone: newLeadData.phone,
+          source: newLeadData.source,
+          service: newLeadData.service
+        })
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setLeads([json.data, ...leads]);
+        setToast({ message: 'Lead added successfully', type: 'success' });
+        setIsModalOpen(false);
+        setNewLeadData({ name: '', phone: '', source: '', service: '' });
+      } else {
+        throw new Error(json.error || 'Failed to add lead');
+      }
+    } catch (e: any) {
+      setToast({ message: e.message, type: 'error' });
+    }
   };
 
   const stages = [
@@ -573,10 +605,11 @@ function CrmPipelineTab() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 h-full flex flex-col">
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-xl font-medium text-foreground">CRM Lead Pipeline</h3>
-          <p className="text-sm text-muted-foreground">Interactive Kanban board for client lifecycle management</p>
+          <p className="text-sm text-muted-foreground">Interactive Kanban board mapped to active Postgres database.</p>
         </div>
         
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -620,7 +653,7 @@ function CrmPipelineTab() {
         <DndContext onDragEnd={handleDragEnd}>
           <div className="flex gap-4 overflow-x-auto pb-4 pt-2 min-h-[500px]">
             {stages.map((stage) => {
-              const stageLeads = leads.filter(l => l.conversion_stage === stage.id);
+              const stageLeads = leads.filter(l => l.status === stage.id);
               return <PipelineColumn key={stage.id} stage={stage} stageLeads={stageLeads} />
             })}
           </div>
