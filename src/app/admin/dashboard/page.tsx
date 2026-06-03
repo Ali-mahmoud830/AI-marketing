@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { DndContext, useDroppable, useDraggable } from '@dnd-kit/core';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 
 // RBAC
 function checkAccessSettings(role: string) { return role === 'SuperAdmin'; }
@@ -456,11 +458,66 @@ function CreativeStudioTab() {
   );
 }
 
+function LeadCard({ lead }: { lead: any }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: lead.id,
+    data: lead,
+  });
+  
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    zIndex: isDragging ? 999 : undefined,
+    opacity: isDragging ? 0.8 : 1,
+  } : undefined;
+
+  return (
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+      <Card className="cursor-grab hover:border-primary/50 transition-colors bg-card shadow-sm border-border active:cursor-grabbing">
+        <CardContent className="p-4">
+          <div className="flex justify-between items-start mb-2">
+            <span className="text-xs font-semibold text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded">{lead.service_type}</span>
+            <span className="text-xs text-muted-foreground">Recent</span>
+          </div>
+          <h5 className="font-medium text-white mb-1">{lead.name}</h5>
+          <p className="text-xs text-muted-foreground mb-3">{lead.phone_number}</p>
+          <div className="flex justify-between items-center border-t border-border pt-3 mt-1">
+            <span className="text-xs text-muted-foreground">Source: {lead.utm_source || 'organic'}</span>
+            <button className="text-muted-foreground hover:text-primary transition-colors">
+              <ArrowRight size={14} />
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function PipelineColumn({ stage, stageLeads }: { stage: any, stageLeads: any[] }) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: stage.id,
+  });
+
+  return (
+    <div ref={setNodeRef} className={`w-80 flex-shrink-0 flex flex-col gap-3 rounded-lg p-2 transition-colors ${isOver ? 'bg-primary/5' : ''}`}>
+      <div className={`flex justify-between items-center bg-card p-3 rounded-lg border-t-2 ${stage.color} border-l border-r border-b border-border`}>
+        <h4 className="font-medium text-white text-sm">{stage.title}</h4>
+        <span className="bg-background border border-border text-primary text-xs font-bold px-2 py-1 rounded-full">{stageLeads.length}</span>
+      </div>
+      
+      {stageLeads.map((lead) => (
+        <LeadCard key={lead.id} lead={lead} />
+      ))}
+    </div>
+  );
+}
+
 function CrmPipelineTab() {
   const [leads, setLeads] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newLeadData, setNewLeadData] = useState({ name: '', phone: '', source: '', service: '' });
 
-  // Dynamic Fetch + Robust JSON Mock Fallback
+  // Dynamic Fetch - No Static Mock
   useEffect(() => {
     async function fetchCRMData() {
       try {
@@ -469,19 +526,43 @@ function CrmPipelineTab() {
         if (json.success && json.data && json.data.length > 0) {
           setLeads(json.data);
         } else {
-          throw new Error("No data or DB unreachable");
+          setLeads([]);
         }
       } catch (error) {
-        setLeads([
-          { id: '1', name: 'Sarah Jenkins', phone_number: '+20 100 123 4567', service_type: 'Premium Nursing', conversion_stage: 'New_Lead', utm_source: 'Meta Ads' },
-          { id: '2', name: 'Ahmed Hassan', phone_number: '+20 111 987 6543', service_type: 'Elderly Care', conversion_stage: 'Bot_Chatting', utm_source: 'Google Search' },
-        ]);
+        setLeads([]);
       } finally {
         setIsLoading(false);
       }
     }
     fetchCRMData();
   }, []);
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const leadId = active.id;
+    const newStage = over.id;
+
+    setLeads(currentLeads => 
+      currentLeads.map(l => l.id === leadId ? { ...l, conversion_stage: newStage } : l)
+    );
+  };
+
+  const handleAddLead = () => {
+    if (!newLeadData.name) return;
+    const newLead = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: newLeadData.name,
+      phone_number: newLeadData.phone,
+      service_type: newLeadData.service || 'General Inquiry',
+      conversion_stage: 'New_Lead',
+      utm_source: newLeadData.source || 'Manual Entry',
+    };
+    setLeads([...leads, newLead]);
+    setIsModalOpen(false);
+    setNewLeadData({ name: '', phone: '', source: '', service: '' });
+  };
 
   const stages = [
     { id: 'New_Lead', title: 'New Leads', color: 'border-blue-500' },
@@ -497,9 +578,40 @@ function CrmPipelineTab() {
           <h3 className="text-xl font-medium text-foreground">CRM Lead Pipeline</h3>
           <p className="text-sm text-muted-foreground">Interactive Kanban board for client lifecycle management</p>
         </div>
-        <Button className="flex items-center gap-2 bg-primary text-background font-bold hover:bg-amber-400 shadow-[0_0_15px_rgba(212,175,55,0.3)]">
-          <Plus size={16} /> Add Lead
-        </Button>
+        
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-2 bg-primary text-background font-bold hover:bg-amber-400 shadow-[0_0_15px_rgba(212,175,55,0.3)]">
+              <Plus size={16} /> Add Lead
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader>
+              <DialogTitle className="text-white">Add New Lead</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Lead Name</Label>
+                <Input value={newLeadData.name} onChange={e => setNewLeadData({...newLeadData, name: e.target.value})} className="bg-background border-border text-foreground focus-visible:ring-primary" placeholder="e.g. John Doe" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Phone Number</Label>
+                <Input value={newLeadData.phone} onChange={e => setNewLeadData({...newLeadData, phone: e.target.value})} className="bg-background border-border text-foreground focus-visible:ring-primary" placeholder="e.g. +20 123 456 7890" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Source</Label>
+                <Input value={newLeadData.source} onChange={e => setNewLeadData({...newLeadData, source: e.target.value})} className="bg-background border-border text-foreground focus-visible:ring-primary" placeholder="e.g. Instagram" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Service Type</Label>
+                <Input value={newLeadData.service} onChange={e => setNewLeadData({...newLeadData, service: e.target.value})} className="bg-background border-border text-foreground focus-visible:ring-primary" placeholder="e.g. Real Estate VIP" />
+              </div>
+            </div>
+            <DialogFooter className="mt-6">
+              <Button onClick={handleAddLead} className="w-full bg-primary text-background font-bold hover:bg-amber-400">Save Lead</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {isLoading ? (
@@ -507,38 +619,14 @@ function CrmPipelineTab() {
           <Loader2 className="animate-spin text-primary" size={32} />
         </div>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4 pt-2">
-          {stages.map((stage) => {
-            const stageLeads = leads.filter(l => l.conversion_stage === stage.id);
-            return (
-              <div key={stage.id} className="w-80 flex-shrink-0 flex flex-col gap-3">
-                <div className={`flex justify-between items-center bg-card p-3 rounded-lg border-t-2 ${stage.color} border-l border-r border-b border-border`}>
-                  <h4 className="font-medium text-white text-sm">{stage.title}</h4>
-                  <span className="bg-background border border-border text-primary text-xs font-bold px-2 py-1 rounded-full">{stageLeads.length}</span>
-                </div>
-                
-                {stageLeads.map((lead, idx) => (
-                  <Card key={idx} className="cursor-grab hover:border-primary/50 transition-colors bg-card shadow-sm border-border">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-xs font-semibold text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded">{lead.service_type}</span>
-                        <span className="text-xs text-muted-foreground">Recent</span>
-                      </div>
-                      <h5 className="font-medium text-white mb-1">{lead.name}</h5>
-                      <p className="text-xs text-muted-foreground mb-3">{lead.phone_number}</p>
-                      <div className="flex justify-between items-center border-t border-border pt-3 mt-1">
-                        <span className="text-xs text-muted-foreground">Source: {lead.utm_source || 'organic'}</span>
-                        <button className="text-muted-foreground hover:text-primary transition-colors">
-                          <ArrowRight size={14} />
-                        </button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )
-          })}
-        </div>
+        <DndContext onDragEnd={handleDragEnd}>
+          <div className="flex gap-4 overflow-x-auto pb-4 pt-2 min-h-[500px]">
+            {stages.map((stage) => {
+              const stageLeads = leads.filter(l => l.conversion_stage === stage.id);
+              return <PipelineColumn key={stage.id} stage={stage} stageLeads={stageLeads} />
+            })}
+          </div>
+        </DndContext>
       )}
     </div>
   );
