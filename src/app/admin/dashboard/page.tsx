@@ -8,7 +8,7 @@ import {
   ArrowRight, Settings, ShieldCheck, Loader2, CheckCircle2, AlertCircle
 } from 'lucide-react';
 
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -424,7 +424,22 @@ function CreativeStudioTab() {
       const data = await res.json();
       if (res.ok && data.success) {
         setResult(data.data);
-        setToast({ message: 'Assets Generated Successfully', type: 'success' });
+        
+        try {
+          await fetch('/api/marketing/creatives', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              brandName: brandName || 'Unknown Brand',
+              industry: industry || 'Unknown Industry',
+              adCopy: data.data.ad_copy || 'No copy generated',
+              midjourneyPrompt: data.data.midjourney_prompt || 'No prompt generated'
+            })
+          });
+          setToast({ message: 'Assets Generated & Sent to Review Pipeline', type: 'success' });
+        } catch (e) {
+          setToast({ message: 'Assets Generated (Failed to auto-save to review)', type: 'error' });
+        }
       } else {
         setToast({ message: `Generation failed: ${data.error || 'Server error'}`, type: 'error' });
       }
@@ -792,18 +807,106 @@ function GlobalSettingsTab() {
 }
 
 function CreativeReviewTab() {
+  const [creatives, setCreatives] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [toast, setToast] = useState<{ message: string, type: 'success'|'error' } | null>(null);
+
+  useEffect(() => {
+    async function fetchCreatives() {
+      try {
+        const res = await fetch('/api/marketing/creatives');
+        const json = await res.json();
+        if (json.success && json.data) {
+          setCreatives(json.data);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchCreatives();
+  }, []);
+
+  const handleReview = async (id: string, action: 'approved' | 'rejected') => {
+    try {
+      const res = await fetch('/api/marketing/creatives', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ creativeId: id, newStatus: action })
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setCreatives(current => current.filter(c => c.id !== id));
+        setToast({ message: `Creative ${action} successfully`, type: 'success' });
+      } else {
+        throw new Error(json.error || 'Failed to update');
+      }
+    } catch (e: any) {
+      setToast({ message: e.message, type: 'error' });
+    }
+  };
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-6 animate-in fade-in duration-300 h-full flex flex-col">
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <div>
         <h3 className="text-xl font-medium text-foreground">Creative Review (Human-in-the-Loop)</h3>
         <p className="text-sm text-muted-foreground">Review AI-generated assets to prevent policy violations.</p>
       </div>
-      <Card className="text-center py-12 border-dashed border-2 border-border bg-card">
-        <CardContent className="flex flex-col items-center justify-center p-6">
-          <ShieldCheck size={48} className="mb-4 text-primary opacity-50" />
-          <p className="text-muted-foreground">No creatives are currently pending approval.</p>
-        </CardContent>
-      </Card>
+      
+      {isLoading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="animate-spin text-primary" size={32} />
+        </div>
+      ) : creatives.length === 0 ? (
+        <Card className="text-center py-12 border-dashed border-2 border-border bg-card">
+          <CardContent className="flex flex-col items-center justify-center p-6">
+            <ShieldCheck size={48} className="mb-4 text-primary opacity-50" />
+            <p className="text-muted-foreground">No creatives are currently pending approval.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {creatives.map(creative => (
+            <Card key={creative.id} className="bg-card border-border shadow-md">
+              <CardHeader className="pb-2 border-b border-border/50">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-lg text-white">{creative.brand_name}</CardTitle>
+                    <CardDescription className="text-primary">{creative.industry}</CardDescription>
+                  </div>
+                  <span className="text-xs font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-1 rounded uppercase tracking-wider">
+                    Pending
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div>
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase mb-1">Ad Copy (Arabic)</h4>
+                  <div className="p-3 bg-background border border-border rounded-md">
+                    <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed" dir="rtl">{creative.ad_copy}</p>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase mb-1">Midjourney Prompt</h4>
+                  <div className="p-3 bg-background border border-border rounded-md">
+                    <p className="text-sm text-slate-200 font-mono">{creative.midjourney_prompt}</p>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end gap-3 pt-2">
+                <Button variant="outline" onClick={() => handleReview(creative.id, 'rejected')} className="border-red-500/50 text-red-400 hover:bg-red-500/10 hover:text-red-300">
+                  Reject
+                </Button>
+                <Button onClick={() => handleReview(creative.id, 'approved')} className="bg-emerald-600 text-white hover:bg-emerald-500 shadow-[0_0_15px_rgba(5,150,105,0.3)]">
+                  Approve
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
