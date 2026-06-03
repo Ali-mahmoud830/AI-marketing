@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { DndContext, useDroppable, useDraggable } from '@dnd-kit/core';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, CartesianGrid } from 'recharts';
 
 // RBAC
 function checkAccessSettings(role: string) { return role === 'SuperAdmin'; }
@@ -135,12 +136,27 @@ export default function DashboardPage() {
 function AutopilotTab() {
   const [autoPilotEnabled, setAutoPilotEnabled] = useState(true);
 
+  const lineData = [
+    { name: 'Week 1', leads: 240 },
+    { name: 'Week 2', leads: 310 },
+    { name: 'Week 3', leads: 280 },
+    { name: 'Week 4', leads: 418 },
+  ];
+
+  const pieData = [
+    { name: 'Meta Ads', value: 650 },
+    { name: 'Google Search', value: 350 },
+    { name: 'TikTok', value: 248 },
+  ];
+
+  const COLORS = ['#D4AF37', '#8C7326', '#F2D879'];
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-xl font-medium text-foreground">Live Performance Metrics</h3>
-          <p className="text-sm text-muted-foreground">Real-time ROAS and CPL tracking</p>
+          <p className="text-sm text-muted-foreground">Real-time ROAS and Lead tracking</p>
         </div>
         <div className="flex items-center gap-3 bg-card p-2 pr-4 rounded-full border border-border">
           <button 
@@ -156,11 +172,12 @@ function AutopilotTab() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: 'Total Spend', value: '$12,450', trend: '+14%', up: true },
-          { label: 'Avg. CPL', value: '$14.20', trend: '-8%', up: true },
-          { label: 'Overall ROAS', value: '3.4x', trend: '+22%', up: true }
+          { label: 'Total Leads (30d)', value: '1,248', trend: '+14%', up: true },
+          { label: 'Active Ad Spend', value: '$4,250', trend: '+5%', up: true },
+          { label: 'Conversion Rate', value: '12.4%', trend: '+2.1%', up: true },
+          { label: 'Cost Per Lead', value: '$3.40', trend: '-8%', up: true }
         ].map((stat, i) => (
           <Card key={i} className="border-border shadow-lg">
             <CardHeader className="pb-2">
@@ -177,14 +194,65 @@ function AutopilotTab() {
         ))}
       </div>
 
-      <Card className="h-80 flex flex-col items-center justify-center relative overflow-hidden border-border bg-card">
-        <p className="text-muted-foreground mb-4 z-10 font-medium">Performance Chart Visualization Area</p>
-        <div className="absolute bottom-0 w-full h-32 bg-gradient-to-t from-primary/20 to-transparent"></div>
-        <svg className="absolute bottom-0 w-full h-full text-primary/30" preserveAspectRatio="none" viewBox="0 0 100 100">
-          <path d="M0,100 L0,80 Q25,60 50,70 T100,30 L100,100 Z" fill="currentColor" opacity="0.5" />
-          <path d="M0,80 Q25,60 50,70 T100,30" fill="none" stroke="hsl(var(--primary))" strokeWidth="2" />
-        </svg>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="col-span-2 border-border shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-foreground text-lg">Leads Generated Over Time</CardTitle>
+            <CardDescription className="text-muted-foreground">Last 30 days growth</CardDescription>
+          </CardHeader>
+          <CardContent className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={lineData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#D4AF37" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#0A192F', borderColor: '#D4AF37', borderRadius: '8px' }}
+                  itemStyle={{ color: '#D4AF37' }}
+                />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1A2942" />
+                <Line type="monotone" dataKey="leads" stroke="#D4AF37" strokeWidth={3} dot={{ r: 4, fill: '#0A192F', stroke: '#D4AF37', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-1 border-border shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-foreground text-lg">Leads by Source</CardTitle>
+            <CardDescription className="text-muted-foreground">Traffic distribution</CardDescription>
+          </CardHeader>
+          <CardContent className="h-80 flex items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#0A192F', borderColor: '#D4AF37', borderRadius: '8px' }}
+                  itemStyle={{ color: '#D4AF37' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
