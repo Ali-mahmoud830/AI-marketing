@@ -201,24 +201,26 @@ function AutopilotTab() {
             <CardDescription className="text-muted-foreground">Last 30 days growth</CardDescription>
           </CardHeader>
           <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={lineData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#D4AF37" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#0A192F', borderColor: '#D4AF37', borderRadius: '8px' }}
-                  itemStyle={{ color: '#D4AF37' }}
-                />
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1A2942" />
-                <Line type="monotone" dataKey="leads" stroke="#D4AF37" strokeWidth={3} dot={{ r: 4, fill: '#0A192F', stroke: '#D4AF37', strokeWidth: 2 }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
+            {lineData && lineData.length > 0 && (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={lineData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#D4AF37" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0A192F', borderColor: '#D4AF37', borderRadius: '8px' }}
+                    itemStyle={{ color: '#D4AF37' }}
+                  />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1A2942" />
+                  <Line type="monotone" dataKey="leads" stroke="#D4AF37" strokeWidth={3} dot={{ r: 4, fill: '#0A192F', stroke: '#D4AF37', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -228,28 +230,30 @@ function AutopilotTab() {
             <CardDescription className="text-muted-foreground">Traffic distribution</CardDescription>
           </CardHeader>
           <CardContent className="h-80 flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#0A192F', borderColor: '#D4AF37', borderRadius: '8px' }}
-                  itemStyle={{ color: '#D4AF37' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {pieData && pieData.length > 0 && (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0A192F', borderColor: '#D4AF37', borderRadius: '8px' }}
+                    itemStyle={{ color: '#D4AF37' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -342,54 +346,9 @@ function CompetitorSpyTab() {
                 <p className="text-sm text-muted-foreground animate-pulse text-center">Scanning Web & Analyzing Market...</p>
               </div>
             ) : analysisResult ? (
-              <div className="space-y-6 pt-2">
-                <div>
-                  <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-2 uppercase tracking-wide">
-                    <Search size={14} /> Top 3 Competitors
-                  </h4>
-                  <div className="grid grid-cols-1 gap-3">
-                    {(analysisResult.top_competitors || []).map((comp: any, idx: number) => (
-                      <div key={idx} className="p-3 bg-background border border-border rounded-lg text-sm text-right" dir="rtl">
-                        <strong className="text-white block">{comp.name}</strong>
-                        <p className="text-muted-foreground mt-1 text-xs"><span className="text-primary">السعر المقدر:</span> {comp.estimated_price_points}</p>
-                        <p className="text-slate-300 mt-1 text-xs leading-relaxed line-clamp-2">{comp.current_ads_summary}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-2 uppercase tracking-wide">
-                    <Zap size={14} /> Common Winning Keywords
-                  </h4>
-                  <div className="flex flex-wrap gap-2 justify-end">
-                    {(analysisResult.common_winning_keywords || []).map((kw: string, idx: number) => (
-                      <span key={idx} className="px-2 py-1 bg-background border border-border rounded-md text-xs font-medium text-slate-200" dir="rtl">
-                        {kw}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-2 uppercase tracking-wide justify-end">
-                    <ShieldCheck size={14} /> Strategic Weaknesses
-                  </h4>
-                  <ul className="list-disc list-inside text-sm text-muted-foreground text-right" dir="rtl">
-                    {(analysisResult.strategic_weaknesses || []).map((w: string, idx: number) => (
-                      <li key={idx} className="mb-1">{w}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-2 uppercase tracking-wide justify-end">
-                    <TrendingUp size={14} /> Recommended Ad Angles
-                  </h4>
-                  <ul className="list-disc list-inside text-sm text-slate-200 text-right leading-relaxed" dir="rtl">
-                    {(analysisResult.recommended_ad_angles || []).map((a: string, idx: number) => (
-                      <li key={idx} className="mb-2">{a}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
+              <pre className="text-xs text-left overflow-auto text-emerald-400 bg-black/50 p-4 rounded-md">
+                {JSON.stringify(analysisResult, null, 2)}
+              </pre>
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
                 Waiting for LLM analysis...

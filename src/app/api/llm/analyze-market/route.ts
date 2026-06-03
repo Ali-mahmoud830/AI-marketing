@@ -44,6 +44,7 @@ STRICT RULES:
     let result;
     try {
       const rawText = response.text.replace(/\`\`\`json/gi, '').replace(/\`\`\`/g, '').trim();
+      console.log("API Response:", rawText);
       result = JSON.parse(rawText);
     } catch (parseError) {
       throw new Error('Failed to parse Gemini API response into valid JSON.');
