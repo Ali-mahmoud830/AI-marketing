@@ -24,15 +24,13 @@ Then provide Actionable Intelligence for ${brandName} to beat them.
 STRICT RULES:
 - The outputs (Top 3 Competitor Names, Common Winning Keywords, Competitor Weaknesses, Recommended Ad Angles) MUST be written in highly fluent, persuasive, and culturally resonant Arabic, acting as an elite Arab marketing director.
 - The tone must be strategic and engineered to steal market share for ${brandName}.
-
-Return ONLY valid JSON matching the required schema.`;
+- You must return ONLY raw, valid JSON. Do not include markdown code blocks like \`\`\`json or \`\`\`. Return just the parsable JSON object.`;
 
     // Optionally enable googleSearch grounding if needed, but the prompt itself will trigger internal knowledge synthesis
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
-        responseMimeType: 'application/json',
         responseSchema: MarketAnalysisSchema,
         temperature: 0.5,
         tools: [{ googleSearch: {} }] // Enabling Google Search grounding for real-time competitor discovery
@@ -45,7 +43,8 @@ Return ONLY valid JSON matching the required schema.`;
 
     let result;
     try {
-      result = JSON.parse(response.text);
+      const rawText = response.text.replace(/\`\`\`json/gi, '').replace(/\`\`\`/g, '').trim();
+      result = JSON.parse(rawText);
     } catch (parseError) {
       throw new Error('Failed to parse Gemini API response into valid JSON.');
     }
