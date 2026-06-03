@@ -39,24 +39,12 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { brandName, industry, serviceType, targetAudience, specialOffer } = GenerationRequestSchema.parse(body);
 
-    const prompt = `You are a world-class, elite direct-response copywriter and marketing strategist. 
-Brand: ${brandName} 
-Industry: ${industry}
-
-Task: Write highly persuasive, conversion-optimized ad copy for the following service: ${serviceType}, targeting: ${targetAudience}, with this offer: ${specialOffer}. 
-
-STRICT COPYWRITING RULES (Arabic):
-1. The ad copy (headline and primary_text) MUST be written in highly fluent, persuasive, and culturally resonant Arabic. It must sound like it was written by an elite Arab marketing director. DO NOT SOUND LIKE A MACHINE TRANSLATION.
-2. The copy MUST use powerful psychological hooks, address deep pain points, and have a compelling Call-to-Action (CTA).
-3. If the industry is medical, maintain strict compliance (no guarantees, no before/afters). Otherwise, adapt perfectly to the ${industry}.
-
-STRICT MIDJOURNEY PROMPT RULES (English ONLY):
-1. The Midjourney prompt MUST ALWAYS be in English.
-2. Make it highly cinematic, professional, and perfectly aligned with the ${industry} and ${serviceType}.
-3. Absolutely NO medical imagery unless the industry is specifically medical/healthcare.
-4. Use parameters exactly: --ar 16:9 --v 6.0 --style raw
-5. Include explicit negative constraints to prevent distortion (e.g., "no distorted hands, anatomical correctness, professional").
-
+    const prompt = `You are an expert copywriter. 
+Brand: ${brandName}
+Industry: ${industry}. 
+Write ad copy in highly persuasive Arabic for the following service: ${serviceType}, targeting: ${targetAudience}, with this offer: ${specialOffer}. 
+Generate a Midjourney prompt in English strictly related to ${industry}. 
+NO MEDICAL REFERENCES UNLESS SPECIFIED.
 You must return ONLY valid JSON matching the required schema.`;
 
     const response = await ai.models.generateContent({
