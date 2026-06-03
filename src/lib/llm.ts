@@ -9,22 +9,36 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 export const MarketAnalysisSchema: Schema = {
   type: Type.OBJECT,
   properties: {
-    seo_keywords: {
+    top_competitors: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING },
+          estimated_price_points: { type: Type.STRING },
+          current_ads_summary: { type: Type.STRING }
+        },
+        required: ["name", "estimated_price_points", "current_ads_summary"]
+      },
+      description: "List of the top 3 successful competitors in this niche."
+    },
+    common_winning_keywords: {
       type: Type.ARRAY,
       items: { type: Type.STRING },
-      description: "List of top-performing Arabic SEO keywords extracted from the competitor."
+      description: "List of common winning SEO and Ad keywords."
     },
     strategic_weaknesses: {
       type: Type.ARRAY,
       items: { type: Type.STRING },
-      description: "List of strategic weaknesses in the competitor's copy."
+      description: "List of strategic weaknesses in the competitors' marketing."
     },
-    hybrid_superior_script: {
-      type: Type.STRING,
-      description: "A highly persuasive Arabic ad script that exploits their weaknesses."
+    recommended_ad_angles: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+      description: "List of recommended ad angles to beat them."
     }
   },
-  required: ["seo_keywords", "strategic_weaknesses", "hybrid_superior_script"]
+  required: ["top_competitors", "common_winning_keywords", "strategic_weaknesses", "recommended_ad_angles"]
 };
 
 // Reusable schema for Script Generation

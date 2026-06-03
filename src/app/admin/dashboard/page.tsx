@@ -191,14 +191,8 @@ function CompetitorSpyTab() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [brandName, setBrandName] = useState('');
   const [industry, setIndustry] = useState('');
-  const [competitorData, setCompetitorData] = useState('');
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [toast, setToast] = useState<{ message: string, type: 'success'|'error' } | null>(null);
-
-  const competitors = [
-    { name: 'Elite Care Services', keywords: ['home nursing', 'elderly care'], ads: 12, pricing: '$60/hr' },
-    { name: 'CleanSweep Maadi', keywords: ['housekeeping', 'deep clean'], ads: 24, pricing: '$25/hr' },
-  ];
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
@@ -207,14 +201,14 @@ function CompetitorSpyTab() {
       const res = await fetch('/api/llm/analyze-market', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brandName, industry, competitorData })
+        body: JSON.stringify({ brandName, industry })
       });
       const data = await res.json();
       if (res.ok && data.success) {
         setAnalysisResult(data.data);
-        setToast({ message: 'Intelligence Extracted Successfully', type: 'success' });
+        setToast({ message: 'Market Discovered Successfully', type: 'success' });
       } else {
-        setToast({ message: `Analysis failed: ${data.error || 'Server error'}`, type: 'error' });
+        setToast({ message: `Discovery failed: ${data.error || 'Server error'}`, type: 'error' });
       }
     } catch (e: any) {
       setToast({ message: `Network Error: ${e.message}`, type: 'error' });
@@ -228,7 +222,7 @@ function CompetitorSpyTab() {
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-xl font-medium text-foreground">Competitor Intelligence Hub</h3>
-          <p className="text-sm text-muted-foreground">Reverse-engineer competitors for any brand or niche.</p>
+          <p className="text-sm text-muted-foreground">Autonomous market discovery using Gemini Search Grounding.</p>
         </div>
       </div>
 
@@ -239,36 +233,27 @@ function CompetitorSpyTab() {
               <Search size={18} className="text-primary" /> Strategy Extraction Engine
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label className="text-muted-foreground">Your Brand Name</Label>
                 <Input value={brandName} onChange={(e) => setBrandName(e.target.value)} placeholder="e.g. Palm Hills" className="bg-background border-border text-foreground focus-visible:ring-primary" />
               </div>
               <div className="space-y-2">
-                <Label className="text-muted-foreground">Industry / Niche</Label>
-                <Input value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="e.g. Real Estate" className="bg-background border-border text-foreground focus-visible:ring-primary" />
+                <Label className="text-muted-foreground">Target Industry / Niche</Label>
+                <Input value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="e.g. Real Estate in Egypt" className="bg-background border-border text-foreground focus-visible:ring-primary" />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">Raw Competitor Data (Paste text or URL)</Label>
-              <Textarea 
-                rows={4}
-                value={competitorData} 
-                onChange={(e) => setCompetitorData(e.target.value)} 
-                placeholder="Paste ad copy, landing page text, or competitor URLs..." 
-                className="resize-none bg-background border-border text-foreground focus-visible:ring-primary"
-              />
-            </div>
+            
             <Button 
               onClick={handleAnalyze}
-              disabled={isAnalyzing || !competitorData || !brandName || !industry}
-              className="w-full flex items-center gap-2 bg-primary text-background font-bold hover:bg-amber-400 shadow-[0_0_10px_rgba(212,175,55,0.2)]"
+              disabled={isAnalyzing || !brandName || !industry}
+              className="w-full flex items-center justify-center gap-2 bg-primary text-background font-bold hover:bg-amber-400 shadow-[0_0_10px_rgba(212,175,55,0.2)]"
             >
               {isAnalyzing ? (
-                <>Analyzing Market <Loader2 className="animate-spin" size={18} /></>
+                <>Deploying Autonomous Agents <Loader2 className="animate-spin" size={18} /></>
               ) : (
-                <>Extract Strategic Angles <Zap size={18} /></>
+                <>🔍 Auto-Discover Market & Competitors</>
               )}
             </Button>
           </CardContent>
@@ -282,42 +267,57 @@ function CompetitorSpyTab() {
           </CardHeader>
           <CardContent className="flex-1 overflow-auto max-h-[450px]">
             {isAnalyzing ? (
-              <div className="flex items-center justify-center h-full text-primary">
-                <Loader2 className="animate-spin mr-2" size={24} /> Processing Intelligence...
+              <div className="flex flex-col items-center justify-center h-full text-primary gap-4">
+                <Loader2 className="animate-spin" size={32} />
+                <p className="text-sm text-muted-foreground animate-pulse text-center">Scanning Web & Analyzing Market...</p>
               </div>
             ) : analysisResult ? (
               <div className="space-y-6 pt-2">
                 <div>
                   <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-2 uppercase tracking-wide">
-                    <Search size={14} /> Top SEO Keywords
+                    <Search size={14} /> Top 3 Competitors
                   </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {(analysisResult.seo_keywords || []).map((kw: string, idx: number) => (
-                      <span key={idx} className="px-2 py-1 bg-background border border-border rounded-md text-xs font-medium text-slate-200">
-                        {kw}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-2 uppercase tracking-wide">
-                    <ShieldCheck size={14} /> Strategic Weaknesses
-                  </h4>
-                  <div className="grid grid-cols-1 gap-2">
-                    {(analysisResult.strategic_weaknesses || []).map((w: string, idx: number) => (
-                      <div key={idx} className="p-3 bg-background border border-border rounded-lg text-sm text-muted-foreground text-right" dir="rtl">
-                        {w}
+                  <div className="grid grid-cols-1 gap-3">
+                    {(analysisResult.top_competitors || []).map((comp: any, idx: number) => (
+                      <div key={idx} className="p-3 bg-background border border-border rounded-lg text-sm text-right" dir="rtl">
+                        <strong className="text-white block">{comp.name}</strong>
+                        <p className="text-muted-foreground mt-1 text-xs"><span className="text-primary">السعر المقدر:</span> {comp.estimated_price_points}</p>
+                        <p className="text-slate-300 mt-1 text-xs leading-relaxed line-clamp-2">{comp.current_ads_summary}</p>
                       </div>
                     ))}
                   </div>
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-2 uppercase tracking-wide">
-                    <Zap size={14} /> Hybrid Superior Ad Script
+                    <Zap size={14} /> Common Winning Keywords
                   </h4>
-                  <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg text-sm text-slate-200 leading-relaxed text-right" dir="rtl">
-                    {analysisResult.hybrid_superior_script}
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    {(analysisResult.common_winning_keywords || []).map((kw: string, idx: number) => (
+                      <span key={idx} className="px-2 py-1 bg-background border border-border rounded-md text-xs font-medium text-slate-200" dir="rtl">
+                        {kw}
+                      </span>
+                    ))}
                   </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-2 uppercase tracking-wide justify-end">
+                    <ShieldCheck size={14} /> Strategic Weaknesses
+                  </h4>
+                  <ul className="list-disc list-inside text-sm text-muted-foreground text-right" dir="rtl">
+                    {(analysisResult.strategic_weaknesses || []).map((w: string, idx: number) => (
+                      <li key={idx} className="mb-1">{w}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-2 uppercase tracking-wide justify-end">
+                    <TrendingUp size={14} /> Recommended Ad Angles
+                  </h4>
+                  <ul className="list-disc list-inside text-sm text-slate-200 text-right leading-relaxed" dir="rtl">
+                    {(analysisResult.recommended_ad_angles || []).map((a: string, idx: number) => (
+                      <li key={idx} className="mb-2">{a}</li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             ) : (

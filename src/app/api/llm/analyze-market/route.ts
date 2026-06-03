@@ -5,7 +5,6 @@ import { ai, MarketAnalysisSchema } from '@/lib/llm';
 const AnalyzeMarketRequestSchema = z.object({
   brandName: z.string().min(1),
   industry: z.string().min(1),
-  competitorData: z.string().min(1),
 });
 
 export async function POST(request: Request) {
@@ -15,33 +14,28 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { brandName, industry, competitorData } = AnalyzeMarketRequestSchema.parse(body);
+    const { brandName, industry } = AnalyzeMarketRequestSchema.parse(body);
 
-    const prompt = `You are an elite SEO expert, market analyst, and world-class direct-response copywriter.
-Brand: ${brandName}
-Industry: ${industry}
-
-Analyze this competitor data (which may be raw ad text, links, or keywords). 
-1. Extract top-performing SEO keywords relevant to the ${industry}.
-2. Identify strategic weaknesses and gaps in their copy and messaging.
-3. Write a 'Hybrid' superior ad script that exploits their weaknesses, uses better psychological triggers, and outperforms them.
+    const prompt = `You are a senior market analyst and autonomous researcher.
+Perform an internal knowledge search (and web search if grounded) for the top successful competitors in the ${industry} niche.
+Identify their common marketing angles, estimated price points, and what current ads they are running.
+Then provide Actionable Intelligence for ${brandName} to beat them.
 
 STRICT RULES:
-- The outputs (SEO keywords, strategic weaknesses, and the hybrid superior script) MUST be written in highly fluent, persuasive, and culturally resonant Arabic.
-- Act as an elite Arab marketing director. The tone must be aggressive but professional, engineered to steal market share.
-
-Competitor Data:
-${competitorData}
+- The outputs (Top 3 Competitor Names, Common Winning Keywords, Competitor Weaknesses, Recommended Ad Angles) MUST be written in highly fluent, persuasive, and culturally resonant Arabic, acting as an elite Arab marketing director.
+- The tone must be strategic and engineered to steal market share for ${brandName}.
 
 Return ONLY valid JSON matching the required schema.`;
 
+    // Optionally enable googleSearch grounding if needed, but the prompt itself will trigger internal knowledge synthesis
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
         responseSchema: MarketAnalysisSchema,
-        temperature: 0.6,
+        temperature: 0.5,
+        tools: [{ googleSearch: {} }] // Enabling Google Search grounding for real-time competitor discovery
       }
     });
 
