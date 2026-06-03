@@ -580,10 +580,8 @@ function CrmPipelineTab() {
         </div>
         
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2 bg-primary text-background font-bold hover:bg-amber-400 shadow-[0_0_15px_rgba(212,175,55,0.3)]">
-              <Plus size={16} /> Add Lead
-            </Button>
+          <DialogTrigger className="flex items-center gap-2 bg-primary text-background font-bold hover:bg-amber-400 shadow-[0_0_15px_rgba(212,175,55,0.3)] px-4 py-2 rounded-md text-sm">
+            <Plus size={16} /> Add Lead
           </DialogTrigger>
           <DialogContent className="bg-card border-border">
             <DialogHeader>
